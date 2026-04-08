@@ -64,9 +64,9 @@ function renderSidebar(activePath) {
       <div class="sidebar-header">
         <div class="sidebar-logo">
           <div class="sidebar-logo-icon">
-            <i data-lucide="heart-pulse"></i>
+            <img src="/img/logoneocore.png" alt="" style="width:120px;height:70px">
           </div>
-          <span class="sidebar-logo-text">MedFlow</span>
+          <span class="sidebar-logo-text">Portal Paciente</span>
         </div>
         <button class="sidebar-collapse-btn" id="collapseBtn">
           <i data-lucide="chevron-left"></i>
