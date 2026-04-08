@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Abrir Solicitação – MedFlow</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Abrir Solicitação</h1>
+        <p>Solicite uma consulta ou exame</p>
+      </div>
+
+      <!-- Success state -->
+      <div id="successState" style="display:none;max-width:480px">
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius);padding:2.5rem;text-align:center">
+          <div style="width:56px;height:56px;background:#22c55e;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">
+            <i data-lucide="check" style="width:28px;height:28px;stroke:#fff"></i>
+          </div>
+          <h2 style="color:#15803d;margin-bottom:.5rem">Solicitação Enviada!</h2>
+          <p style="font-size:.875rem;color:#166534">Sua solicitação foi registrada. Você pode acompanhar o status em "Minhas Solicitações".</p>
+          <div style="display:flex;gap:.75rem;justify-content:center;margin-top:1.5rem">
+            <button class="btn btn-primary" onclick="resetForm()"><i data-lucide="plus"></i> Nova Solicitação</button>
+            <a href="tickets.html" class="btn btn-secondary">Ver Solicitações</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <div id="formState" style="max-width:500px">
+        <div class="card">
+          <div class="card-body">
+
+            <!-- Type selector -->
+            <div class="form-group">
+              <label class="form-label">Tipo de Solicitação</label>
+              <div style="display:flex;gap:.75rem">
+                <button class="type-btn active" id="btnConsulta" onclick="setType('consulta')">
+                  <i data-lucide="stethoscope"></i> Consulta
+                </button>
+                <button class="type-btn" id="btnExame" onclick="setType('exame')">
+                  <i data-lucide="flask-conical"></i> Exame
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Especialidade</label>
+              <select class="form-control" id="fSpecialty">
+                <option value="">Selecione...</option>
+                <option>Cardiologia</option>
+                <option>Cirurgia Cardiovascular</option>
+                <option>Hemodinâmica</option>
+                <option>Arritmologia</option>
+                <option>Ecocardiografia</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" id="descLabel">Descreva o que está sentindo</label>
+              <textarea class="form-control" id="fDescription" rows="5"
+                placeholder="Ex: Estou sentindo dores no peito ao subir escadas..."></textarea>
+            </div>
+
+            <button class="btn btn-primary" id="submitBtn" onclick="submit()" disabled>
+              <i data-lucide="send"></i> Enviar Solicitação
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <style>
+    .type-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: .5rem;
+      padding: .65rem; border-radius: var(--radius-sm); border: 2px solid var(--border);
+      background: #fff; font-size: .875rem; color: var(--text-muted);
+      transition: all .15s; font-weight: 500;
+    }
+    .type-btn svg { width: 16px; height: 16px; }
+    .type-btn.active { border-color: var(--primary); background: #f0fdfa; color: var(--primary); }
+    .type-btn:hover:not(.active) { border-color: #94a3b8; }
+  </style>
+
+  <script src="../../js/data.js"></script>
+  <script src="../../js/app.js"></script>
+  <script src="../../js/sidebar.js"></script>
+  <script>
+    if (!App.requireAuth("patient")) throw new Error("unauth");
+    renderSidebar();
+    lucide.createIcons();
+
+    let currentType = "consulta";
+
+    function setType(type) {
+      currentType = type;
+      document.getElementById("btnConsulta").classList.toggle("active", type === "consulta");
+      document.getElementById("btnExame").classList.toggle("active",    type === "exame");
+      document.getElementById("descLabel").textContent =
+        type === "consulta" ? "Descreva o que está sentindo" : "Descreva o exame desejado";
+      document.getElementById("fDescription").placeholder =
+        type === "consulta"
+          ? "Ex: Estou sentindo dores no peito ao subir escadas..."
+          : "Ex: Gostaria de realizar um eletrocardiograma...";
+      lucide.createIcons();
+    }
+
+    // Enable button when fields filled
+    ["fSpecialty","fDescription"].forEach(id => {
+      document.getElementById(id).addEventListener("input", () => {
+        const ok = document.getElementById("fSpecialty").value &&
+                   document.getElementById("fDescription").value.trim();
+        document.getElementById("submitBtn").disabled = !ok;
+      });
+    });
+
+    function submit() {
+      const specialty   = document.getElementById("fSpecialty").value;
+      const description = document.getElementById("fDescription").value.trim();
+      if (!specialty || !description) return;
+
+      App.createTicket(currentType, specialty, description);
+      App.toast("Solicitação enviada com sucesso!");
+
+      document.getElementById("formState").style.display   = "none";
+      document.getElementById("successState").style.display = "block";
+      lucide.createIcons();
+    }
+
+    function resetForm() {
+      currentType = "consulta";
+      document.getElementById("btnConsulta").classList.add("active");
+      document.getElementById("btnExame").classList.remove("active");
+      document.getElementById("fSpecialty").value   = "";
+      document.getElementById("fDescription").value = "";
+      document.getElementById("submitBtn").disabled  = true;
+      document.getElementById("formState").style.display   = "block";
+      document.getElementById("successState").style.display = "none";
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>

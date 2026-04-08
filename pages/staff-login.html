@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Staff – MedFlow</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <div class="login-bg">
+    <div style="width:100%;max-width:460px">
+      <div class="login-logo">
+        <div class="login-logo-icon"><i data-lucide="stethoscope"></i></div>
+        <h1>Acesso Profissional</h1>
+        <p>Neocore Hospital</p>
+      </div>
+
+      <!-- Role selector -->
+      <div style="display:flex;gap:.5rem;margin-bottom:1rem">
+        <button class="role-btn active" id="btnDoctor" onclick="setRole('doctor')">
+          <div class="role-icon" style="background:var(--primary-light)"><i data-lucide="stethoscope"></i></div>
+          <div><div class="role-name">Médico</div><div class="role-desc">Prontuários e atendimentos</div></div>
+        </button>
+        <button class="role-btn" id="btnAdmin" onclick="setRole('admin')">
+          <div class="role-icon" style="background:var(--primary)"><i data-lucide="shield"></i></div>
+          <div><div class="role-name">Administrador</div><div class="role-desc">Gestão do hospital</div></div>
+        </button>
+      </div>
+
+      <div class="login-card">
+        <div class="form-group">
+          <label class="form-label" id="fieldLabel">Médico</label>
+          <select class="form-control" id="userSelect">
+            <option value="">Selecione...</option>
+          </select>
+        </div>
+
+        <div id="userInfo" style="display:none;margin-bottom:1rem">
+          <div class="alert alert-info">
+            <i data-lucide="info"></i>
+            <div id="userInfoText"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;justify-content:center" id="loginBtn" disabled onclick="doLogin()">
+          <i data-lucide="log-in"></i> Entrar
+        </button>
+
+        <div style="text-align:center;margin-top:1.25rem">
+          <a href="patient-login.html" style="font-size:.8rem;color:var(--primary)">Sou paciente →</a>
+        </div>
+        <div style="text-align:center;margin-top:.5rem">
+          <a href="../index.html" style="font-size:.8rem;color:var(--text-muted)">← Voltar ao início</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/data.js"></script>
+  <script src="../js/app.js"></script>
+  <script>
+    lucide.createIcons();
+    let currentRole = "doctor";
+
+    function setRole(role) {
+      currentRole = role;
+      document.getElementById("btnDoctor").classList.toggle("active", role === "doctor");
+      document.getElementById("btnAdmin").classList.toggle("active",  role === "admin");
+      document.getElementById("fieldLabel").textContent = role === "doctor" ? "Médico" : "Administrador";
+      populateSelect();
+      document.getElementById("userInfo").style.display = "none";
+      document.getElementById("loginBtn").disabled = true;
+    }
+
+    function populateSelect() {
+      const sel = document.getElementById("userSelect");
+      sel.innerHTML = "<option value=''>Selecione...</option>";
+      const list = currentRole === "doctor" ? mockDoctors : mockAdmins;
+      list.forEach(u => {
+        const opt = document.createElement("option");
+        opt.value = u.id;
+        opt.textContent = currentRole === "doctor" ? `${u.name} – ${u.specialty}` : `${u.name} – ${u.title}`;
+        sel.appendChild(opt);
+      });
+    }
+
+    document.getElementById("userSelect").addEventListener("change", () => {
+      const id  = document.getElementById("userSelect").value;
+      const list = currentRole === "doctor" ? mockDoctors : mockAdmins;
+      const u   = list.find(x => x.id === id);
+      const info = document.getElementById("userInfo");
+      const btn  = document.getElementById("loginBtn");
+      if (u) {
+        document.getElementById("userInfoText").innerHTML =
+          `<strong>${u.name}</strong><br>Usuário: <code>${u.username}</code> &nbsp;|&nbsp; ${u.email}`;
+        info.style.display = "block";
+        btn.disabled = false;
+        lucide.createIcons();
+      } else {
+        info.style.display = "none";
+        btn.disabled = true;
+      }
+    });
+
+    function doLogin() {
+      const id   = document.getElementById("userSelect").value;
+      const list  = currentRole === "doctor" ? mockDoctors : mockAdmins;
+      const user  = list.find(x => x.id === id);
+      if (!user) return;
+      App.login(user);
+      window.location.href = currentRole === "doctor"
+        ? "doctor/dashboard.html"
+        : "admin/dashboard.html";
+    }
+
+    populateSelect();
+  </script>
+</body>
+</html>

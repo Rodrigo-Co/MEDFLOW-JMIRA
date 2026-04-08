@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Admin – MedFlow</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main-content">
+      <div class="page-top-row">
+        <div class="page-header" style="margin:0">
+          <h1>Dashboard Administrativo</h1>
+          <p>Visão geral do hospital</p>
+        </div>
+        <div class="tab-group" id="periodTabs">
+          <button class="tab-btn" data-period="weekly"  onclick="setPeriod('weekly')">Semana</button>
+          <button class="tab-btn active" data-period="monthly" onclick="setPeriod('monthly')">Mês</button>
+          <button class="tab-btn" data-period="yearly"  onclick="setPeriod('yearly')">Ano</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <!-- Charts -->
+      <div class="charts-grid">
+        <div class="card">
+          <div class="card-header"><h3>Tendência Mensal</h3></div>
+          <div class="card-body">
+            <div class="chart-canvas-wrap"><canvas id="trendChart"></canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Desempenho por Médico</h3></div>
+          <div class="card-body">
+            <select class="form-control" id="doctorSelect" style="margin-bottom:1rem" onchange="renderDoctorChart()">
+              <option value="">Selecione um médico</option>
+            </select>
+            <div class="chart-canvas-wrap"><canvas id="doctorChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Doctors table -->
+      <div class="card">
+        <div class="card-header"><h3>Médicos do Hospital</h3></div>
+        <div class="table-wrap">
+          <table id="doctorsTable">
+            <thead>
+              <tr>
+                <th>Nome</th><th>Especialidade</th><th>CRM</th>
+                <th style="text-align:center">Atendimentos</th>
+                <th style="text-align:center">Cirurgias</th>
+                <th style="text-align:center">Exames</th>
+              </tr>
+            </thead>
+            <tbody id="doctorsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../../js/data.js"></script>
+  <script src="../../js/app.js"></script>
+  <script src="../../js/sidebar.js"></script>
+  <script>
+    if (!App.requireAuth("admin")) throw new Error("unauth");
+
+    renderSidebar();
+
+    let currentPeriod = "monthly";
+    let trendChart, doctorChart;
+
+    function setPeriod(p) {
+      currentPeriod = p;
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.period === p));
+      renderStats();
+    }
+
+    function renderStats() {
+      const stats = hospitalStats[currentPeriod];
+      document.getElementById("statsGrid").innerHTML = [
+        { label: "Atendimentos",   value: stats.attendances.toLocaleString("pt-BR"), icon: "stethoscope", bg: "#3b82f6" },
+        { label: "Cirurgias",      value: stats.surgeries.toLocaleString("pt-BR"),   icon: "heart-pulse", bg: "var(--primary)" },
+        { label: "Exames",         value: stats.exams.toLocaleString("pt-BR"),       icon: "activity",    bg: "#22c55e" },
+        { label: "Médicos Ativos", value: mockDoctors.length,                        icon: "users",       bg: "#8b5cf6" },
+      ].map(s => `
+        <div class="stat-card">
+          <div class="stat-card-top">
+            <span>${s.label}</span>
+            <div class="stat-icon" style="background:${s.bg}"><i data-lucide="${s.icon}"></i></div>
+          </div>
+          <div class="stat-value">${s.value}</div>
+        </div>
+      `).join("");
+      lucide.createIcons();
+    }
+
+    function renderTrendChart() {
+      const ctx = document.getElementById("trendChart");
+      if (trendChart) trendChart.destroy();
+      trendChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: monthlyTrend.map(d => d.month),
+          datasets: [
+            { label: "Atendimentos", data: monthlyTrend.map(d => d.atendimentos), borderColor: "#3b82f6", backgroundColor: "transparent", tension: .35, pointRadius: 4 },
+            { label: "Cirurgias",    data: monthlyTrend.map(d => d.cirurgias),    borderColor: "#ef4444", backgroundColor: "transparent", tension: .35, pointRadius: 4 },
+            { label: "Exames",       data: monthlyTrend.map(d => d.exames),       borderColor: "#22c55e", backgroundColor: "transparent", tension: .35, pointRadius: 4 },
+          ],
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } }, scales: { y: { grid: { color: "#f1f5f9" } }, x: { grid: { color: "#f1f5f9" } } } },
+      });
+    }
+
+    function renderDoctorChart() {
+      const id  = document.getElementById("doctorSelect").value;
+      const doc = mockDoctors.find(d => d.id === id);
+      const ctx = document.getElementById("doctorChart");
+      if (doctorChart) doctorChart.destroy();
+      if (!doc) return;
+      doctorChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["Atendimentos", "Cirurgias", "Exames"],
+          datasets: [{ data: [doc.attendances, doc.surgeries, doc.exams], backgroundColor: "rgba(26,107,122,.8)", borderRadius: 6 }],
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: "#f1f5f9" } }, x: { grid: { color: "#f1f5f9" } } } },
+      });
+    }
+
+    // Populate doctor select
+    const sel = document.getElementById("doctorSelect");
+    mockDoctors.forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d.id; opt.textContent = d.name;
+      sel.appendChild(opt);
+    });
+
+    // Doctors table
+    document.getElementById("doctorsBody").innerHTML = mockDoctors.map(d => `
+      <tr>
+        <td><strong>${d.name}</strong></td>
+        <td class="text-muted">${d.specialty}</td>
+        <td class="text-muted">${d.crm}</td>
+        <td style="text-align:center">${d.attendances}</td>
+        <td style="text-align:center">${d.surgeries}</td>
+        <td style="text-align:center">${d.exams}</td>
+      </tr>
+    `).join("");
+
+    renderStats();
+    renderTrendChart();
+  </script>
+</body>
+</html>

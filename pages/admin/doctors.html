@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerenciar Médicos – MedFlow</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebarMount"></div>
+    <main class="main-content">
+      <div class="page-top-row">
+        <div class="page-header" style="margin:0">
+          <h1>Gerenciar Médicos</h1>
+          <p>Cadastre e edite perfis de médicos</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">
+          <i data-lucide="plus"></i> Novo Médico
+        </button>
+      </div>
+
+      <div id="doctorsList"></div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div class="modal-overlay" id="doctorModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Cadastrar Médico</h3>
+        <button class="modal-close" onclick="closeModal()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Nome Completo</label><input class="form-control" id="fName" /></div>
+          <div class="form-group"><label class="form-label">E-mail</label><input class="form-control" id="fEmail" type="email" /></div>
+          <div class="form-group"><label class="form-label">Telefone</label><input class="form-control" id="fPhone" /></div>
+          <div class="form-group"><label class="form-label">CPF</label><input class="form-control" id="fCpf" /></div>
+          <div class="form-group"><label class="form-label">Especialidade</label><input class="form-control" id="fSpecialty" /></div>
+          <div class="form-group"><label class="form-label">CRM</label><input class="form-control" id="fCrm" /></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveDoctor()"><i data-lucide="save"></i> Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../js/data.js"></script>
+  <script src="../../js/app.js"></script>
+  <script src="../../js/sidebar.js"></script>
+  <script>
+    if (!App.requireAuth("admin")) throw new Error("unauth");
+    renderSidebar();
+
+    let editingId = null;
+
+    function render() {
+      document.getElementById("doctorsList").innerHTML = mockDoctors.map(d => `
+        <div class="list-item" style="margin-bottom:.75rem">
+          <div class="list-item-row">
+            <div>
+              <div class="list-item-title">${d.name}</div>
+              <div class="list-item-sub">${d.specialty} · ${d.crm}</div>
+              <div class="list-item-meta">${d.email} &nbsp;|&nbsp; CPF: ${d.cpf}</div>
+              <div style="margin-top:.3rem;font-size:.72rem;color:var(--primary)">
+                <i data-lucide="user" style="width:12px;height:12px;display:inline;vertical-align:middle"></i>
+                Usuário: <code>${d.username}</code>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:1.5rem">
+              <div style="text-align:right;font-size:.8rem;color:var(--text-muted);display:none" class="doctor-stats-col">
+                <div>${d.attendances} atendimentos</div>
+                <div>${d.surgeries} cirurgias · ${d.exams} exames</div>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="openEditModal('${d.id}')">
+                <i data-lucide="edit-2"></i> Editar
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join("");
+
+      // Show stats on wider screens
+      document.querySelectorAll(".doctor-stats-col").forEach(el => {
+        if (window.innerWidth > 700) el.style.display = "block";
+      });
+
+      lucide.createIcons();
+    }
+
+    function openAddModal() {
+      editingId = null;
+      document.getElementById("modalTitle").textContent = "Cadastrar Médico";
+      ["fName","fEmail","fPhone","fCpf","fSpecialty","fCrm"].forEach(id => document.getElementById(id).value = "");
+      document.getElementById("doctorModal").classList.add("open");
+      lucide.createIcons();
+    }
+
+    function openEditModal(id) {
+      editingId = id;
+      const d = mockDoctors.find(x => x.id === id);
+      document.getElementById("modalTitle").textContent = "Editar Médico";
+      document.getElementById("fName").value      = d.name;
+      document.getElementById("fEmail").value     = d.email;
+      document.getElementById("fPhone").value     = d.phone;
+      document.getElementById("fCpf").value       = d.cpf;
+      document.getElementById("fSpecialty").value = d.specialty;
+      document.getElementById("fCrm").value       = d.crm;
+      document.getElementById("doctorModal").classList.add("open");
+      lucide.createIcons();
+    }
+
+    function closeModal() {
+      document.getElementById("doctorModal").classList.remove("open");
+    }
+
+    function saveDoctor() {
+      const form = {
+        name: document.getElementById("fName").value.trim(),
+        email: document.getElementById("fEmail").value.trim(),
+        phone: document.getElementById("fPhone").value.trim(),
+        cpf:   document.getElementById("fCpf").value.trim(),
+        specialty: document.getElementById("fSpecialty").value.trim(),
+        crm:  document.getElementById("fCrm").value.trim(),
+      };
+      if (!form.name || !form.specialty || !form.crm) {
+        App.toast("Preencha nome, especialidade e CRM.", "error"); return;
+      }
+      if (editingId) {
+        App.updateDoctor(editingId, form);
+        App.toast("Médico atualizado com sucesso!");
+      } else {
+        App.addDoctor(form);
+        App.toast("Médico cadastrado com sucesso!");
+      }
+      closeModal();
+      render();
+    }
+
+    render();
+  </script>
+</body>
+</html>
