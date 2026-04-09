@@ -14,41 +14,6 @@ Backend Java com Spring Boot + Supabase (PostgreSQL).
 
 ## 🚀 Setup em 3 passos
 
-### 1. Configure o Supabase
-
-**a) Crie o banco de dados:**
-
-1. Acesse [supabase.com](https://supabase.com) → New Project
-2. Anote a **senha do banco** definida na criação
-3. Vá em **SQL Editor → New Query**
-4. Cole e execute todo o conteúdo de `src/main/resources/schema.sql`
-
-**b) Obtenha as credenciais:**
-
-1. Vá em **Settings → Database**
-2. Copie o **Host** (formato: `db.XXXXXXXX.supabase.co`)
-3. A porta é sempre `5432` e o banco é `postgres`
-
----
-
-### 2. Configure o arquivo de propriedades
-
-Abra `src/main/resources/application.properties` e preencha:
-
-```properties
-supabase.url=db.XXXXXXXXXXXXXXXX.supabase.co   # ← Cole aqui o Host do Supabase
-supabase.port=5432
-supabase.db=postgres
-supabase.username=postgres
-supabase.password=SUA_SENHA_AQUI               # ← Senha definida na criação do projeto
-
-jwt.secret=medflow-super-secret-key-troque-isso-em-producao-123456789
-
-cors.allowed-origins=http://localhost:3000,http://localhost:5500,http://127.0.0.1:5500
-```
-
----
-
 ### 3. Rode o servidor
 
 ```bash
