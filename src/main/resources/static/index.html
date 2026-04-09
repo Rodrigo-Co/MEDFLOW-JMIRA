@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedFlow – Neocore Hospital</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <div class="home-bg">
+    <nav style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 2rem;border-bottom:1px solid rgba(255,255,255,.1)">
+      <div style="display:flex;align-items:center;gap:.65rem;color:#fff">
+        <div class="feature-icon" style="margin:0;width:36px;height:36px"><i data-lucide="heart-pulse"></i></div>
+        <span style="font-weight:700;font-size:1.1rem">MedFlow</span>
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <a href="pages/patient-login.html" class="home-cta-btn home-cta-secondary" style="padding:.5rem 1.25rem;font-size:.875rem">Portal do Paciente</a>
+        <a href="pages/staff-login.html"   class="home-cta-btn home-cta-primary"   style="padding:.5rem 1.25rem;font-size:.875rem;color:var(--primary)">Acesso Staff</a>
+      </div>
+    </nav>
+    <div class="home-hero">
+      <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:.3rem .9rem;margin-bottom:1.5rem">
+        <i data-lucide="shield-check" style="width:14px;height:14px;stroke:#7ec8a0"></i>
+        <span style="font-size:.78rem;color:rgba(255,255,255,.85)">Sistema de Gestão Hospitalar</span>
+      </div>
+      <h1>Neocore Hospital</h1>
+      <p>Cuidados cardiovasculares avançados com tecnologia e humanidade. Gerencie prontuários, agendamentos e equipes em um único lugar.</p>
+      <div class="home-cta-group">
+        <a href="pages/patient-login.html" class="home-cta-btn home-cta-primary">Sou Paciente</a>
+        <a href="pages/staff-login.html"   class="home-cta-btn home-cta-secondary">Sou Médico / Admin</a>
+      </div>
+    </div>
+    <div class="home-features">
+      <div class="feature-card">
+        <div class="feature-icon"><i data-lucide="file-heart"></i></div>
+        <h3>Prontuários Digitais</h3>
+        <p>Registros médicos completos com histórico de edições e formatação automática assistida por IA.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><i data-lucide="activity"></i></div>
+        <h3>Monitoramento de Saúde</h3>
+        <p>Acompanhe pressão arterial e frequência cardíaca com gráficos evolutivos em tempo real.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><i data-lucide="shield"></i></div>
+        <h3>Segurança e Auditoria</h3>
+        <p>Log completo de todas as ações do sistema com controle de acesso por perfil de usuário.</p>
+      </div>
+    </div>
+    <div style="text-align:center;padding:1.5rem;color:rgba(255,255,255,.35);font-size:.78rem;border-top:1px solid rgba(255,255,255,.08)">
+      &copy; 2026 Neocore Hospital · MedFlow v2.0
+    </div>
+  </div>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

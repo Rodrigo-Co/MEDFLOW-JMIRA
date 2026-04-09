@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Meu Perfil – MedFlow</title>
+  <link rel="stylesheet" href="../../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebarMount"></div>
+  <main class="main-content">
+    <div class="page-header"><h1>Meu Perfil</h1><p>Gerencie suas informações profissionais</p></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;max-width:800px">
+      <div class="card" style="grid-column:1/-1">
+        <div class="card-body" style="display:flex;align-items:center;gap:1.5rem">
+          <div id="avatarEl" style="width:72px;height:72px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:1.75rem;font-weight:700;color:#fff;flex-shrink:0"></div>
+          <div>
+            <h2 id="nameEl" style="margin:0 0 .2rem"></h2>
+            <div id="specialtyEl" style="color:var(--text-muted);font-size:.875rem"></div>
+            <div id="crmEl" style="color:var(--text-xs);font-size:.8rem;margin-top:.2rem"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Informações Pessoais</h3></div>
+        <div class="card-body">
+          <div class="form-group"><label class="form-label">Nome</label><input class="form-control" id="fName"/></div>
+          <div class="form-group"><label class="form-label">E-mail</label><input class="form-control" id="fEmail" type="email"/></div>
+          <div class="form-group"><label class="form-label">Telefone</label><input class="form-control" id="fPhone"/></div>
+          <button class="btn btn-primary" onclick="saveInfo()"><i data-lucide="save"></i> Salvar</button>
+          <p style="font-size:.72rem;color:var(--text-xs);margin-top:.5rem">Alteração de e-mail requer aprovação do admin.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Indicadores</h3></div>
+        <div class="card-body"><div id="statsEl"></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="../../js/data.js"></script>
+<script src="../../js/app.js"></script>
+<script src="../../js/sidebar.js"></script>
+<script>
+  if (!App.requireAuth("doctor")) throw 0;
+  renderSidebar();
+
+  async function load() {
+    try {
+      const d = await App.getDoctorProfile();
+      render(d);
+    } catch(e) { App.toast("Erro ao carregar perfil","error"); }
+  }
+
+  function render(d) {
+    document.getElementById("avatarEl").textContent    = d.name.charAt(0).toUpperCase();
+    document.getElementById("nameEl").textContent      = d.name;
+    document.getElementById("specialtyEl").textContent = d.specialty||"";
+    document.getElementById("crmEl").textContent       = d.crm||"";
+    document.getElementById("fName").value  = d.name;
+    document.getElementById("fEmail").value = d.email;
+    document.getElementById("fPhone").value = d.phone||"";
+    document.getElementById("statsEl").innerHTML = [
+      {label:"Atendimentos",value:d.attendances||0,icon:"stethoscope",color:"#3b82f6"},
+      {label:"Cirurgias",   value:d.surgeries||0,  icon:"heart-pulse", color:"var(--primary)"},
+      {label:"Exames",      value:d.exams||0,       icon:"activity",    color:"#22c55e"},
+    ].map(s=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem .75rem;background:#f8fafc;border-radius:8px;margin-bottom:.4rem">
+        <div style="display:flex;align-items:center;gap:.6rem;font-size:.875rem">
+          <div style="width:28px;height:28px;border-radius:7px;background:${s.color};display:flex;align-items:center;justify-content:center">
+            <i data-lucide="${s.icon}" style="width:13px;height:13px;stroke:#fff"></i>
+          </div>${s.label}
+        </div>
+        <strong>${s.value}</strong>
+      </div>`).join("");
+    lucide.createIcons();
+  }
+
+  async function saveInfo() {
+    try {
+      const updated = await App.updateDoctorProfile({
+        name:  document.getElementById("fName").value.trim(),
+        email: document.getElementById("fEmail").value.trim(),
+        phone: document.getElementById("fPhone").value.trim(),
+      });
+      render(updated);
+      App.toast("Perfil atualizado!");
+    } catch(e) { App.toast("Erro: "+e.message,"error"); }
+  }
+
+  load();
+</script>
+</body>
+</html>

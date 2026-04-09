@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Paciente – MedFlow</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebarMount"></div>
+  <main class="main-content">
+    <div class="page-header">
+      <h1>Meu Painel de Saúde</h1>
+      <p id="welcomeMsg">Carregando...</p>
+    </div>
+    <div class="stats-grid" id="healthStats"></div>
+    <div class="charts-grid" style="margin-bottom:1.75rem">
+      <div class="card">
+        <div class="card-header"><h3>Evolução da Pressão Arterial</h3></div>
+        <div class="card-body"><div class="chart-canvas-wrap"><canvas id="bpChart"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Frequência Cardíaca</h3></div>
+        <div class="card-body"><div class="chart-canvas-wrap"><canvas id="hrChart"></canvas></div></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+      <div class="card">
+        <div class="card-header"><h3>Condições Diagnosticadas</h3></div>
+        <div class="card-body" id="conditionsEl"><p class="text-muted">Carregando...</p></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Medicações em Uso</h3></div>
+        <div class="card-body" id="medsEl"><p class="text-muted">Carregando...</p></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="../../js/data.js"></script>
+<script src="../../js/app.js"></script>
+<script src="../../js/sidebar.js"></script>
+<script>
+  if (!App.requireAuth("patient")) throw 0;
+  renderSidebar();
+
+  async function load() {
+    const user = App.getUser();
+    document.getElementById("welcomeMsg").textContent = "Acompanhe seu progresso, " + user.name;
+    try {
+      const [patient, tickets] = await Promise.all([
+        App.getPatient(user.id),
+        App.getMyTickets(),
+      ]);
+
+      const bp = patient.bloodPressureHistory || [];
+      const hr = patient.heartRateHistory     || [];
+      const bpLast  = bp[bp.length - 1] || {};
+      const bpFirst = bp[0] || {};
+      const hrLast  = hr[hr.length - 1] || {};
+      const hrFirst = hr[0] || {};
+      const bpOk = bpLast.systolic  < bpFirst.systolic;
+      const hrOk = hrLast.rate      < hrFirst.rate;
+      const openTickets = (tickets || []).filter(t => t.status === "aberto").length;
+
+      document.getElementById("healthStats").innerHTML = [
+        { label:"Pressão Atual",  value:`${bpLast.systolic||"—"}/${bpLast.diastolic||"—"}`, icon:"heart",    color:"var(--primary)",       sub: bpOk?"↓ Melhorando":"↑ Atenção", ok:bpOk },
+        { label:"Freq. Cardíaca", value:`${hrLast.rate||"—"} bpm`,                          icon:"activity",  color:"var(--primary-light)", sub: hrOk?"↓ Melhorando":"↑ Atenção", ok:hrOk },
+        { label:"Medicações",     value:(patient.medications||[]).length,                    icon:"pill",      color:"var(--accent)",        sub:"Em uso" },
+        { label:"Solicitações",   value:(tickets||[]).length,                                icon:"clipboard", color:"#f59e0b",              sub:`${openTickets} em aberto` },
+      ].map(s=>`
+        <div class="stat-card">
+          <div class="stat-card-top">
+            <span>${s.label}</span>
+            <div class="stat-icon" style="background:${s.color}"><i data-lucide="${s.icon}"></i></div>
+          </div>
+          <div class="stat-value">${s.value}</div>
+          ${s.sub?`<div class="stat-sub ${s.ok!==undefined?(s.ok?"health-improving":"health-attention"):""}">${s.sub}</div>`:""}
+        </div>`).join("");
+
+      if (bp.length) {
+        new Chart(document.getElementById("bpChart"), {
+          type:"line",
+          data:{ labels:bp.map(d=>d.date||d.dateLabel), datasets:[
+            {label:"Sistólica",  data:bp.map(d=>d.systolic),  borderColor:"var(--primary)",       backgroundColor:"rgba(26,107,122,.08)", fill:true, tension:.35, pointRadius:4},
+            {label:"Diastólica", data:bp.map(d=>d.diastolic), borderColor:"var(--accent)",         backgroundColor:"rgba(126,200,160,.08)",fill:true, tension:.35, pointRadius:4},
+          ]},
+          options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{y:{grid:{color:"#f1f5f9"}},x:{grid:{color:"#f1f5f9"}}}},
+        });
+      }
+      if (hr.length) {
+        new Chart(document.getElementById("hrChart"), {
+          type:"line",
+          data:{ labels:hr.map(d=>d.date||d.dateLabel), datasets:[
+            {label:"BPM", data:hr.map(d=>d.rate), borderColor:"var(--primary-light)", backgroundColor:"rgba(42,143,159,.08)", fill:true, tension:.35, pointRadius:4},
+          ]},
+          options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{y:{min:60,max:100,grid:{color:"#f1f5f9"}},x:{grid:{color:"#f1f5f9"}}}},
+        });
+      }
+
+      const conditions = patient.conditions || [];
+      document.getElementById("conditionsEl").innerHTML = conditions.length === 0
+        ? `<p class="text-muted" style="font-size:.875rem">Nenhuma condição registrada</p>`
+        : conditions.map(c=>`<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .9rem;background:rgba(26,107,122,.05);border-radius:8px;margin-bottom:.4rem;font-size:.875rem"><i data-lucide="heart" style="width:15px;height:15px;stroke:var(--primary);flex-shrink:0"></i>${c.conditionName||c}</div>`).join("");
+
+      const meds = patient.medications || [];
+      document.getElementById("medsEl").innerHTML = meds.length === 0
+        ? `<p class="text-muted" style="font-size:.875rem">Nenhuma medicação registrada</p>`
+        : meds.map(m=>`<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .9rem;background:rgba(126,200,160,.12);border-radius:8px;margin-bottom:.4rem;font-size:.875rem"><i data-lucide="pill" style="width:15px;height:15px;stroke:var(--primary-light);flex-shrink:0"></i>${m.medication||m}</div>`).join("");
+
+      lucide.createIcons();
+    } catch(e) {
+      App.toast("Erro ao carregar dados: " + e.message, "error");
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>

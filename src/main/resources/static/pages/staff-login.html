@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Staff – MedFlow</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <div class="login-bg">
+    <div style="width:100%;max-width:460px">
+      <div class="login-logo">
+        <div class="login-logo-icon"><i data-lucide="stethoscope"></i></div>
+        <h1>Acesso Profissional</h1>
+        <p>Neocore Hospital</p>
+      </div>
+      <div style="display:flex;gap:.5rem;margin-bottom:1rem">
+        <button class="role-btn active" id="btnDoctor" onclick="setRole('doctor')">
+          <div class="role-icon" style="background:var(--primary-light)"><i data-lucide="stethoscope"></i></div>
+          <div><div class="role-name">Médico</div><div class="role-desc">Prontuários e atendimentos</div></div>
+        </button>
+        <button class="role-btn" id="btnAdmin" onclick="setRole('admin')">
+          <div class="role-icon" style="background:var(--primary)"><i data-lucide="shield"></i></div>
+          <div><div class="role-name">Administrador</div><div class="role-desc">Gestão do hospital</div></div>
+        </button>
+      </div>
+      <div class="login-card">
+        <div class="form-group">
+          <label class="form-label" id="fieldLabel">Médico</label>
+          <select class="form-control" id="userSelect">
+            <option value="">Carregando...</option>
+          </select>
+        </div>
+        <div id="userInfo" style="display:none;margin-bottom:1rem">
+          <div class="alert alert-info">
+            <i data-lucide="info"></i>
+            <div id="userInfoText"></div>
+          </div>
+        </div>
+        <div id="errorMsg" class="alert alert-warning" style="display:none;margin-bottom:1rem">
+          <i data-lucide="alert-triangle"></i>
+          <span id="errorText"></span>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" id="loginBtn" disabled onclick="doLogin()">
+          <i data-lucide="log-in"></i> Entrar
+        </button>
+        <div style="text-align:center;margin-top:1.25rem">
+          <a href="patient-login.html" style="font-size:.8rem;color:var(--primary)">Sou paciente →</a>
+        </div>
+        <div style="text-align:center;margin-top:.5rem">
+          <a href="../index.html" style="font-size:.8rem;color:var(--text-muted)">← Voltar ao início</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/data.js"></script>
+  <script src="../js/app.js"></script>
+  <script>
+    lucide.createIcons();
+    let currentRole = "doctor";
+    let staffList = [];
+
+    async function loadStaff(role) {
+      try {
+        staffList = await App.listStaff(role);
+        const sel = document.getElementById("userSelect");
+        sel.innerHTML = "<option value=''>Selecione...</option>";
+        staffList.forEach(u => {
+          const opt = document.createElement("option");
+          opt.value = u.username;
+          opt.textContent = role === "doctor"
+            ? `${u.name} – ${u.specialty}`
+            : `${u.name} – ${u.title}`;
+          sel.appendChild(opt);
+        });
+      } catch(e) {
+        document.getElementById("userSelect").innerHTML = "<option value=''>Erro ao carregar</option>";
+      }
+    }
+
+    function setRole(role) {
+      currentRole = role;
+      document.getElementById("btnDoctor").classList.toggle("active", role === "doctor");
+      document.getElementById("btnAdmin").classList.toggle("active",  role === "admin");
+      document.getElementById("fieldLabel").textContent = role === "doctor" ? "Médico" : "Administrador";
+      document.getElementById("userInfo").style.display = "none";
+      document.getElementById("loginBtn").disabled = true;
+      loadStaff(role);
+    }
+
+    document.getElementById("userSelect").addEventListener("change", function() {
+      const u = staffList.find(x => x.username === this.value);
+      const info = document.getElementById("userInfo");
+      if (u) {
+        document.getElementById("userInfoText").innerHTML =
+          `<strong>${u.name}</strong><br>Usuário: <code>${u.username}</code> &nbsp;|&nbsp; ${u.email}`;
+        info.style.display = "block";
+        document.getElementById("loginBtn").disabled = false;
+        lucide.createIcons();
+      } else {
+        info.style.display = "none";
+        document.getElementById("loginBtn").disabled = true;
+      }
+    });
+
+    async function doLogin() {
+      const username = document.getElementById("userSelect").value;
+      if (!username) return;
+      document.getElementById("loginBtn").disabled = true;
+      document.getElementById("loginBtn").textContent = "Entrando...";
+      document.getElementById("errorMsg").style.display = "none";
+      try {
+        await App.loginByUsername(username, currentRole);
+        window.location.href = currentRole === "doctor"
+          ? "doctor/dashboard.html"
+          : "admin/dashboard.html";
+      } catch(e) {
+        document.getElementById("errorText").textContent = e.message || "Erro ao fazer login.";
+        document.getElementById("errorMsg").style.display = "flex";
+        document.getElementById("loginBtn").disabled = false;
+        document.getElementById("loginBtn").innerHTML = '<i data-lucide="log-in"></i> Entrar';
+        lucide.createIcons();
+      }
+    }
+
+    loadStaff("doctor");
+  </script>
+</body>
+</html>

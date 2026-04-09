@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Paciente – MedFlow</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <div class="login-bg">
+    <div style="width:100%;max-width:460px">
+      <div class="login-logo">
+        <div class="login-logo-icon"><i data-lucide="heart-pulse"></i></div>
+        <h1>Portal do Paciente</h1>
+        <p>Neocore Hospital</p>
+      </div>
+      <div class="login-card">
+        <p style="font-size:.875rem;color:var(--text-muted);margin-bottom:1.25rem;text-align:center">
+          Selecione sua conta para acessar seu painel de saúde
+        </p>
+        <div class="form-group">
+          <label class="form-label">Paciente</label>
+          <select class="form-control" id="patientSelect">
+            <option value="">Carregando...</option>
+          </select>
+        </div>
+        <div id="patientInfo" style="display:none;margin-bottom:1rem">
+          <div class="alert alert-info">
+            <i data-lucide="info"></i>
+            <div id="patientInfoText"></div>
+          </div>
+        </div>
+        <div id="errorMsg" class="alert alert-warning" style="display:none;margin-bottom:1rem">
+          <i data-lucide="alert-triangle"></i>
+          <span id="errorText"></span>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" id="loginBtn" disabled onclick="doLogin()">
+          <i data-lucide="log-in"></i> Entrar
+        </button>
+        <div style="text-align:center;margin-top:1.25rem">
+          <a href="staff-login.html" style="font-size:.8rem;color:var(--primary)">Sou médico ou administrador →</a>
+        </div>
+        <div style="text-align:center;margin-top:.5rem">
+          <a href="../index.html" style="font-size:.8rem;color:var(--text-muted)">← Voltar ao início</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/data.js"></script>
+  <script src="../js/app.js"></script>
+  <script>
+    lucide.createIcons();
+    let patients = [];
+
+    async function loadPatients() {
+      try {
+        patients = await App.listPatients();
+        const sel = document.getElementById("patientSelect");
+        sel.innerHTML = "<option value=''>Selecione...</option>";
+        patients.forEach(p => {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = p.name;
+          sel.appendChild(opt);
+        });
+      } catch(e) {
+        document.getElementById("patientSelect").innerHTML = "<option value=''>Erro ao carregar</option>";
+        showError("Não foi possível conectar ao servidor. Verifique se o backend está rodando.");
+      }
+    }
+
+    document.getElementById("patientSelect").addEventListener("change", function() {
+      const p = patients.find(x => x.id === this.value);
+      const info = document.getElementById("patientInfo");
+      if (p) {
+        document.getElementById("patientInfoText").innerHTML =
+          `<strong>${p.name}</strong><br>CPF: ${p.cpf} &nbsp;|&nbsp; ${p.email}`;
+        info.style.display = "block";
+        document.getElementById("loginBtn").disabled = false;
+        lucide.createIcons();
+      } else {
+        info.style.display = "none";
+        document.getElementById("loginBtn").disabled = true;
+      }
+    });
+
+    async function doLogin() {
+      const id = document.getElementById("patientSelect").value;
+      if (!id) return;
+      document.getElementById("loginBtn").disabled = true;
+      document.getElementById("loginBtn").textContent = "Entrando...";
+      hideError();
+      try {
+        await App.loginByPatientId(id);
+        window.location.href = "patient/dashboard.html";
+      } catch(e) {
+        showError(e.message || "Erro ao fazer login.");
+        document.getElementById("loginBtn").disabled = false;
+        document.getElementById("loginBtn").innerHTML = '<i data-lucide="log-in"></i> Entrar';
+        lucide.createIcons();
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById("errorText").textContent = msg;
+      document.getElementById("errorMsg").style.display = "flex";
+      lucide.createIcons();
+    }
+    function hideError() { document.getElementById("errorMsg").style.display = "none"; }
+
+    loadPatients();
+  </script>
+</body>
+</html>

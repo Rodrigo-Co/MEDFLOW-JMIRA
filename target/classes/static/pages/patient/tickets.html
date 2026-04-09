@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Minhas Solicitações – MedFlow</title>
+  <link rel="stylesheet" href="../../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebarMount"></div>
+  <main class="main-content">
+    <div class="page-header">
+      <h1>Minhas Solicitações</h1>
+      <p>Acompanhe o status dos seus pedidos</p>
+    </div>
+    <div id="ticketsList"></div>
+  </main>
+</div>
+<script src="../../js/data.js"></script>
+<script src="../../js/app.js"></script>
+<script src="../../js/sidebar.js"></script>
+<script>
+  if (!App.requireAuth("patient")) throw 0;
+  renderSidebar();
+  App.showLoading("ticketsList");
+
+  App.getMyTickets().then(tickets => {
+    document.getElementById("ticketsList").innerHTML = (!tickets || tickets.length === 0)
+      ? `<div class="empty"><i data-lucide="inbox"></i><p>Nenhuma solicitação encontrada</p></div>`
+      : tickets.map(t => `
+        <div class="list-item" style="margin-bottom:.6rem">
+          <div class="list-item-tags">${App.statusBadge(t.status)} ${App.typeBadge(t.type)}</div>
+          <div class="list-item-title mt-1">${t.description}</div>
+          <div class="list-item-sub">Especialidade: ${t.specialty}</div>
+          ${t.doctorName ? `<div class="list-item-meta">Médico: ${t.doctorName}</div>` : ""}
+          ${t.result ? `<div style="margin-top:.6rem;padding:.7rem .9rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:.82rem;color:#15803d">Resultado: ${t.result}</div>` : ""}
+          <div class="list-item-meta">Criado: ${t.createdAt} · Atualizado: ${t.updatedAt}</div>
+        </div>`).join("");
+    lucide.createIcons();
+  }).catch(e => App.showError("ticketsList", "Erro ao carregar: " + e.message));
+</script>
+</body>
+</html>

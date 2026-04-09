@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Log de Auditoria – MedFlow</title>
+  <link rel="stylesheet" href="../../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebarMount"></div>
+  <main class="main-content">
+    <div class="page-header">
+      <h1>Log de Auditoria</h1>
+      <p>Histórico completo de ações no sistema</p>
+    </div>
+    <div style="display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap">
+      <select class="form-control" id="severityFilter" style="width:auto" onchange="render()">
+        <option value="">Todas as severidades</option>
+        <option value="info">Info</option>
+        <option value="warning">Aviso</option>
+        <option value="error">Erro</option>
+      </select>
+      <select class="form-control" id="roleFilter" style="width:auto" onchange="render()">
+        <option value="">Todos os perfis</option>
+        <option value="admin">Admin</option>
+        <option value="doctor">Médico</option>
+        <option value="patient">Paciente</option>
+      </select>
+    </div>
+    <div id="logList"></div>
+  </main>
+</div>
+<script src="../../js/data.js"></script>
+<script src="../../js/app.js"></script>
+<script src="../../js/sidebar.js"></script>
+<script>
+  if (!App.requireAuth("admin")) throw 0;
+  renderSidebar();
+
+  const actionLabels = {
+    LOGIN:"Login", LOGOUT:"Logout", RECORD_CREATE:"Prontuário Criado",
+    RECORD_EDIT:"Prontuário Editado", DOCTOR_CREATE:"Médico Cadastrado",
+    DOCTOR_UPDATE:"Médico Atualizado", REQUEST_CREATE:"Solicitação Criada",
+    REQUEST_RESOLVE:"Solicitação Resolvida", TICKET_UPDATE:"Chamado Atualizado",
+    TICKET_CREATE:"Chamado Criado", PATIENT_CREATE:"Paciente Cadastrado",
+  };
+  const sevIcon  = {info:"info",warning:"alert-triangle",error:"alert-circle"};
+  const roleLabel= {admin:"Admin",doctor:"Médico",patient:"Paciente"};
+  const sevColor = {info:"var(--info)",warning:"var(--warning)",error:"var(--danger)"};
+
+  async function render() {
+    App.showLoading("logList");
+    const sev  = document.getElementById("severityFilter").value;
+    const role = document.getElementById("roleFilter").value;
+    try {
+      const log = await App.getAuditLog(sev||null, role||null);
+      if (!log||!log.length) {
+        document.getElementById("logList").innerHTML=`<div class="empty"><i data-lucide="scroll"></i><p>Nenhum registro encontrado</p></div>`;
+        lucide.createIcons(); return;
+      }
+      document.getElementById("logList").innerHTML = log.map(e=>`
+        <div class="list-item sev-${e.severity}" style="margin-bottom:.5rem">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
+            <div style="display:flex;align-items:flex-start;gap:.75rem">
+              <div style="margin-top:.1rem;color:${sevColor[e.severity]||"var(--info)"}">
+                <i data-lucide="${sevIcon[e.severity]||"info"}" style="width:16px;height:16px"></i>
+              </div>
+              <div>
+                <div style="font-size:.82rem;font-weight:600;color:var(--text)">${actionLabels[e.action]||e.action}</div>
+                <div style="font-size:.8rem;color:var(--text-muted);margin-top:.15rem">${e.details}</div>
+                <div style="font-size:.72rem;color:var(--text-xs);margin-top:.25rem">
+                  ${e.userName} &nbsp;·&nbsp;
+                  <span class="badge badge-primary" style="font-size:.65rem">${roleLabel[e.userRole]||e.userRole}</span>
+                </div>
+              </div>
+            </div>
+            <div style="font-size:.72rem;color:var(--text-xs);white-space:nowrap;flex-shrink:0">
+              ${new Date(e.logTimestamp).toLocaleString("pt-BR")}
+            </div>
+          </div>
+        </div>`).join("");
+      lucide.createIcons();
+    } catch(e) { App.showError("logList","Erro ao carregar: "+e.message); }
+  }
+
+  render();
+</script>
+</body>
+</html>

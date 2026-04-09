@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Meus Resultados – MedFlow</title>
+  <link rel="stylesheet" href="../../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebarMount"></div>
+  <main class="main-content">
+    <div class="page-header"><h1>Meus Resultados</h1><p>Consultas e exames realizados</p></div>
+    <div id="examsSection">
+      <h2 style="display:flex;align-items:center;gap:.5rem;font-size:1rem;margin-bottom:1rem">
+        <i data-lucide="flask-conical" style="width:18px;height:18px;stroke:var(--teal)"></i> Exames Concluídos
+      </h2>
+      <div id="examsList" style="margin-bottom:2rem"></div>
+    </div>
+    <h2 style="display:flex;align-items:center;gap:.5rem;font-size:1rem;margin-bottom:1rem">
+      <i data-lucide="file-text" style="width:18px;height:18px;stroke:var(--primary)"></i> Histórico de Consultas
+    </h2>
+    <div id="recordsList"></div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="recordModal">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header">
+      <h3 id="recordModalTitle">Prontuário</h3>
+      <button class="modal-close" onclick="document.getElementById('recordModal').classList.remove('open')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body" id="recordModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('recordModal').classList.remove('open')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../js/data.js"></script>
+<script src="../../js/app.js"></script>
+<script src="../../js/sidebar.js"></script>
+<script>
+  if (!App.requireAuth("patient")) throw 0;
+  renderSidebar();
+  App.showLoading("recordsList");
+  App.showLoading("examsList");
+
+  const user = App.getUser();
+
+  async function load() {
+    try {
+      const [records, tickets] = await Promise.all([
+        App.getPatientRecords(user.id),
+        App.getMyTickets(),
+      ]);
+      const exams = (tickets||[]).filter(t => t.type==="exame" && t.status==="concluido");
+
+      if (!exams.length) {
+        document.getElementById("examsSection").style.display = "none";
+      } else {
+        document.getElementById("examsList").innerHTML = exams.map(e=>`
+          <div class="list-item" style="margin-bottom:.6rem">
+            <div class="list-item-title">${e.description}</div>
+            <div class="list-item-sub">Especialidade: ${e.specialty}${e.doctorName?" · Médico: "+e.doctorName:""}</div>
+            ${e.result?`<div style="margin-top:.65rem;padding:.7rem .9rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:.82rem;color:#15803d"><strong>Resultado:</strong> ${e.result}</div>`:""}
+            <div class="list-item-meta">Concluído em: ${e.updatedAt}</div>
+          </div>`).join("");
+      }
+
+      if (!records || !records.length) {
+        document.getElementById("recordsList").innerHTML =
+          `<div class="empty"><i data-lucide="file-x"></i><p>Nenhum resultado disponível</p></div>`;
+      } else {
+        document.getElementById("recordsList").innerHTML = records.map(r=>`
+          <div class="list-item" style="margin-bottom:.6rem">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
+              <div style="flex:1">
+                <div class="list-item-tags">${App.typeBadge(r.type)}</div>
+                <div class="list-item-title mt-1">${r.diagnosis}</div>
+                <div class="list-item-sub">Médico: ${r.doctorName}</div>
+                <div style="margin-top:.65rem;padding:.75rem;background:#f8fafc;border:1px solid var(--border);border-radius:8px;font-size:.82rem;color:var(--text-muted);max-height:90px;overflow:hidden;position:relative">
+                  ${r.formattedNotes}
+                  <div style="position:absolute;bottom:0;left:0;right:0;height:30px;background:linear-gradient(transparent,#f8fafc)"></div>
+                </div>
+              </div>
+              <div style="flex-shrink:0;text-align:right">
+                <div style="font-size:.75rem;color:var(--text-xs);margin-bottom:.5rem">${r.recordDate||r.date}</div>
+                <button class="btn btn-secondary btn-sm" onclick="viewRecord(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+                  <i data-lucide="eye"></i> Ver
+                </button>
+              </div>
+            </div>
+          </div>`).join("");
+      }
+      lucide.createIcons();
+    } catch(e) {
+      App.showError("recordsList", "Erro ao carregar: " + e.message);
+    }
+  }
+
+  function viewRecord(r) {
+    document.getElementById("recordModalTitle").textContent = r.diagnosis;
+    document.getElementById("recordModalBody").innerHTML = `
+      <div class="form-grid" style="margin-bottom:1rem">
+        <div><div class="form-label">Tipo</div>${App.typeBadge(r.type)}</div>
+        <div><div class="form-label">Data</div><div style="font-size:.875rem">${r.recordDate||r.date}</div></div>
+        <div><div class="form-label">Médico</div><div style="font-size:.875rem">${r.doctorName}</div></div>
+        <div><div class="form-label">Diagnóstico</div><div style="font-size:.875rem">${r.diagnosis}</div></div>
+      </div>
+      <div class="form-label">Prontuário</div>
+      <div class="notes-panel">${r.formattedNotes}</div>`;
+    document.getElementById("recordModal").classList.add("open");
+    lucide.createIcons();
+  }
+
+  load();
+</script>
+</body>
+</html>
