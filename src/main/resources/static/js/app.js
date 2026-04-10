@@ -76,17 +76,7 @@ const App = (() => {
   }
 
   // ── Login ─────────────────────────────────────────────────
-  async function loginByPatientId(patientId) {
-    const data = await post("/auth/patient/login", { patientId });
-    if (data) { _saveSession(data.token, data.user); return data.user; }
-    return null;
-  }
 
-  async function loginByUsername(username, role) {
-    const data = await post("/auth/staff/login", { username, role });
-    if (data) { _saveSession(data.token, data.user); return data.user; }
-    return null;
-  }
 
   async function listPatients() { return get("/auth/patients"); }
   async function listStaff(role){ return get("/auth/staff?role=" + role); }
@@ -117,8 +107,8 @@ const App = (() => {
   // ── Patients ──────────────────────────────────────────────
   async function getAllPatients()                          { return get("/patients"); }
   async function getPatient(id)                           { return get("/patients/" + id); }
-  async function registerPatient(name, email, phone, cpf) {
-    return post("/patients", { name, email, phone, cpf });
+  async function registerPatient(name, email, phone, cpf, password) {
+    return post("/patients", { name, email, phone, cpf, password });
   }
   async function updateMyProfile(id, name, email, phone) {
     return put("/patients/" + id + "/profile", { name, email, phone });
@@ -196,10 +186,51 @@ const App = (() => {
     if (el) el.innerHTML = `<div class="empty"><p style="color:var(--danger)">${msg}</p></div>`;
   }
 
+  // ── Autenticacao com 2FA ───────────────────────────────────────────────────
+
+  /** Passo 1 – Paciente: envia senha, recebe sessionToken para 2FA */
+  async function initPatientLogin(email, password) {
+    return post("/auth/patient/login", { email, password });
+  }
+
+  /** Passo 1 – Medico: envia senha, recebe sessionToken para 2FA */
+  async function initDoctorLogin(username, password) {
+    return post("/auth/doctor/login", { username, role: "doctor", password });
+  }
+
+  /** Admin: login direto, sem 2FA. Salva sessao. */
+  async function loginAdmin(username, password) {
+    const data = await post("/auth/admin/login", { username, role: "admin", password });
+    _saveSession(data.token, data.user);
+    return data;
+  }
+
+  /** Passo 2 – Verifica codigo 2FA. Salva sessao se valido. */
+  async function verify2FA(sessionToken, code) {
+    const data = await post("/auth/verify-2fa", { sessionToken, code });
+    _saveSession(data.token, data.user);
+    return data;
+  }
+
+  /** Reenvia o codigo 2FA */
+  async function resend2FA(body) {
+    return post("/auth/resend-2fa", body);
+  }
+
+  /** Auto-cadastro público de paciente */
+  async function registerPatientSelf(name, email, phone, cpf, password) {
+    return post("/auth/patient/register", { name, email, phone, cpf, password });
+  }
+
+  /** Troca a senha do usuario autenticado */
+  async function changePassword(currentPassword, newPassword) {
+    return post("/users/change-password", { currentPassword, newPassword });
+  }
+
   return {
     // auth
     getUser, getToken, logout, requireAuth, rootPath,
-    loginByPatientId, loginByUsername, listPatients, listStaff,
+    initPatientLogin, initDoctorLogin, loginAdmin, verify2FA, resend2FA, registerPatientSelf, listPatients, listStaff,
     // tickets
     getMyTickets, getAllTickets, createTicket, acceptTicket, completeTicket,
     // records
@@ -212,6 +243,7 @@ const App = (() => {
     getDoctorProfile, updateDoctorProfile, submitChangeRequest,
     // admin
     getDashboard, getRequests, resolveRequest, getAuditLog,
+    changePassword,
     // ui helpers
     statusBadge, typeBadge, formatDate, toast, showLoading, showError,
   };

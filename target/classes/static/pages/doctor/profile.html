@@ -91,6 +91,46 @@
   }
 
   load();
+  function togglePwdField(inputId, iconId) {
+    const inp = document.getElementById(inputId);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    document.getElementById(iconId).setAttribute('data-lucide', inp.type === 'password' ? 'eye' : 'eye-off');
+    lucide.createIcons();
+  }
+
+  async function doChangePassword() {
+    const cur  = document.getElementById('pwdCurrent').value;
+    const novo = document.getElementById('pwdNew').value;
+    const conf = document.getElementById('pwdConfirm').value;
+    document.getElementById('pwdError').style.display   = 'none';
+    document.getElementById('pwdSuccess').style.display = 'none';
+
+    if (!cur || !novo || !conf) {
+      showPwdError('Preencha todos os campos de senha.'); return;
+    }
+    if (novo.length < 6) {
+      showPwdError('A nova senha deve ter no mínimo 6 caracteres.'); return;
+    }
+    if (novo !== conf) {
+      showPwdError('Nova senha e confirmação não coincidem.'); return;
+    }
+    try {
+      await App.changePassword(cur, novo);
+      document.getElementById('pwdSuccess').style.display = 'flex';
+      document.getElementById('pwdCurrent').value = '';
+      document.getElementById('pwdNew').value     = '';
+      document.getElementById('pwdConfirm').value = '';
+      lucide.createIcons();
+    } catch(e) {
+      showPwdError(e.message || 'Erro ao alterar a senha.');
+    }
+  }
+
+  function showPwdError(msg) {
+    document.getElementById('pwdErrorMsg').textContent = msg;
+    document.getElementById('pwdError').style.display = 'flex';
+    lucide.createIcons();
+  }
 </script>
 </body>
 </html>

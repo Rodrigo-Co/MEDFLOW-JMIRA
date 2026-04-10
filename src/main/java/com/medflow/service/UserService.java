@@ -1,11 +1,13 @@
 package com.medflow.service;
 
+import com.medflow.dto.ChangePasswordRequest;
 import com.medflow.dto.CreateDoctorRequest;
 import com.medflow.dto.CreatePatientRequest;
 import com.medflow.dto.UpdateDoctorRequest;
 import com.medflow.model.User;
 import com.medflow.repository.UserRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,15 +20,18 @@ import java.util.UUID;
 @Service
 public class UserService {
 
-    private final UserRepository userRepo;
-    private final AuditService   audit;
+    private final UserRepository  userRepo;
+    private final AuditService    audit;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepo, AuditService audit) {
-        this.userRepo = userRepo;
-        this.audit    = audit;
+    public UserService(UserRepository userRepo, AuditService audit, PasswordEncoder passwordEncoder) {
+        this.userRepo        = userRepo;
+        this.audit           = audit;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    // ── Patients ──────────────────────────────────────────────
+    // ── Patients ──────────────────────────────────────────────────────────────
+
     public List<User> allPatients() { return userRepo.findByRole("patient"); }
 
     public User getPatient(String id) {
@@ -46,6 +51,9 @@ public class UserService {
         User caller = userRepo.findById(callerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
 
+        // Senha é hashada com BCrypt antes de persistir
+        String hash = passwordEncoder.encode(req.getPassword());
+
         User p = User.builder()
                 .id("p" + UUID.randomUUID().toString().replace("-", "").substring(0, 12))
                 .name(req.getName())
@@ -53,7 +61,7 @@ public class UserService {
                 .phone(req.getPhone())
                 .cpf(req.getCpf())
                 .role("patient")
-                .passwordHash("$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy")
+                .passwordHash(hash)
                 .build();
 
         User saved = userRepo.save(p);
@@ -63,17 +71,44 @@ public class UserService {
         return saved;
     }
 
+
+    /** Auto-cadastro publico: paciente se registra sem autenticacao */
+    @Transactional
+    public User createPatientSelf(CreatePatientRequest req) {
+        if (userRepo.existsByCpf(req.getCpf()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "CPF ja cadastrado");
+        if (userRepo.existsByEmail(req.getEmail()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "E-mail ja cadastrado");
+
+        String hash = passwordEncoder.encode(req.getPassword());
+        User p = User.builder()
+                .id("p" + UUID.randomUUID().toString().replace("-", "").substring(0, 12))
+                .name(req.getName())
+                .email(req.getEmail())
+                .phone(req.getPhone())
+                .cpf(req.getCpf())
+                .role("patient")
+                .passwordHash(hash)
+                .build();
+
+        User saved = userRepo.save(p);
+        audit.log("PATIENT_SELF_REGISTER", "info",
+                "Auto-cadastro: " + req.getName(), saved.getId(), saved.getName(), "patient");
+        return saved;
+    }
+
     @Transactional
     public User updatePatientProfile(String patientId, String name, String email, String phone) {
         User p = getPatient(patientId);
         if (name  != null && !name.isBlank())  p.setName(name);
         if (phone != null)                      p.setPhone(phone);
         if (email != null && !email.isBlank() && !email.equals(p.getEmail()))
-            p.setEmail(email); // paciente pode editar direto (sem approval flow por ora)
+            p.setEmail(email);
         return userRepo.save(p);
     }
 
-    // ── Doctors ───────────────────────────────────────────────
+    // ── Doctors ───────────────────────────────────────────────────────────────
+
     public List<User> allDoctors() { return userRepo.findByRole("doctor"); }
 
     public User getDoctor(String id) {
@@ -94,6 +129,9 @@ public class UserService {
         User caller = userRepo.findById(callerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
 
+        // Senha é hashada com BCrypt antes de persistir
+        String hash = passwordEncoder.encode(req.getPassword());
+
         User d = User.builder()
                 .id("d" + UUID.randomUUID().toString().replace("-", "").substring(0, 12))
                 .name(req.getName())
@@ -105,7 +143,7 @@ public class UserService {
                 .crm(req.getCrm())
                 .username(username)
                 .attendances(0).surgeries(0).exams(0)
-                .passwordHash("$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy")
+                .passwordHash(hash)
                 .build();
 
         User saved = userRepo.save(d);
@@ -135,7 +173,27 @@ public class UserService {
         return saved;
     }
 
-    // ── Helpers ───────────────────────────────────────────────
+    // ── Troca de senha ────────────────────────────────────────────────────────
+
+    @Transactional
+    public void changePassword(String userId, ChangePasswordRequest req) {
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        // Verifica senha atual antes de trocar
+        if (!passwordEncoder.matches(req.getCurrentPassword(), user.getPasswordHash()))
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Senha atual incorreta");
+
+        user.setPasswordHash(passwordEncoder.encode(req.getNewPassword()));
+        userRepo.save(user);
+
+        audit.log("PASSWORD_CHANGE", "warning",
+                "Senha alterada pelo usuário",
+                user.getId(), user.getName(), user.getRole());
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
     private String buildUsername(String fullName) {
         String clean = fullName.replaceAll("(?i)^(Dr\\.|Dra\\.)\\s*", "").trim();
         clean = Normalizer.normalize(clean, Normalizer.Form.NFD)

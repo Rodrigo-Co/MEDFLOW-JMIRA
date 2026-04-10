@@ -1,10 +1,9 @@
 package com.medflow.dto;
-
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
-
 @Data
 public class PatientLoginRequest {
-    @NotBlank
-    private String patientId;
+    @NotBlank @Email private String email;
+    @NotBlank        private String password;
 }

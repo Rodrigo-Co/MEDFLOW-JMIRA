@@ -1,20 +1,31 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login Staff – MedFlow</title>
-  <link rel="stylesheet" href="../css/style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Login Profissional – MedFlow</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    .code-input {
+      font-size:1.75rem; letter-spacing:.5rem; text-align:center;
+      font-weight:700; padding:.75rem; border:2px solid var(--border);
+      border-radius:var(--radius-sm); width:100%; background:#f8fafc;
+      transition:border-color .15s;
+    }
+    .code-input:focus { outline:none; border-color:var(--primary); background:#fff; }
+  </style>
 </head>
 <body>
-  <div class="login-bg">
-    <div style="width:100%;max-width:460px">
-      <div class="login-logo">
-        <div class="login-logo-icon"><i data-lucide="stethoscope"></i></div>
-        <h1>Acesso Profissional</h1>
-        <p>Neocore Hospital</p>
-      </div>
+<div class="login-bg">
+  <div style="width:100%;max-width:460px">
+    <div class="login-logo">
+      <div class="login-logo-icon"><i data-lucide="stethoscope"></i></div>
+      <h1>Acesso Profissional</h1><p>Neocore Hospital</p>
+    </div>
+
+    <!-- ETAPA 1 -->
+    <div id="step1">
       <div style="display:flex;gap:.5rem;margin-bottom:1rem">
         <button class="role-btn active" id="btnDoctor" onclick="setRole('doctor')">
           <div class="role-icon" style="background:var(--primary-light)"><i data-lucide="stethoscope"></i></div>
@@ -25,107 +36,203 @@
           <div><div class="role-name">Administrador</div><div class="role-desc">Gestão do hospital</div></div>
         </button>
       </div>
+
       <div class="login-card">
         <div class="form-group">
-          <label class="form-label" id="fieldLabel">Médico</label>
-          <select class="form-control" id="userSelect">
-            <option value="">Carregando...</option>
-          </select>
+          <label class="form-label" id="lblRole">Usuário (Médico)</label>
+          <input class="form-control" type="text" id="usernameInput"
+                 placeholder="Digite seu nome de usuário"
+                 oninput="onUsernameInput()" onkeydown="if(event.key==='Enter')document.getElementById('pwd').focus()"/>
         </div>
-        <div id="userInfo" style="display:none;margin-bottom:1rem">
-          <div class="alert alert-info">
-            <i data-lucide="info"></i>
-            <div id="userInfoText"></div>
+        <div class="form-group">
+          <label class="form-label">Senha</label>
+          <div style="position:relative">
+            <input class="form-control" type="password" id="pwd"
+                   placeholder="Digite sua senha" style="padding-right:2.5rem"
+                   oninput="onPwdInput()" onkeydown="if(event.key==='Enter')doStep1()"/>
+            <button onclick="togglePwd('pwd','ico1')" type="button"
+                    style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer">
+              <i data-lucide="eye" id="ico1" style="width:16px;height:16px"></i>
+            </button>
           </div>
         </div>
-        <div id="errorMsg" class="alert alert-warning" style="display:none;margin-bottom:1rem">
-          <i data-lucide="alert-triangle"></i>
-          <span id="errorText"></span>
+
+        <!-- Aviso 2FA médico -->
+        <div id="notice2fa" class="alert alert-info" style="font-size:.8rem;margin-bottom:1rem">
+          <i data-lucide="shield-check"></i>
+          <span>Médicos recebem um código de verificação por e-mail após a senha.</span>
         </div>
-        <button class="btn btn-primary" style="width:100%;justify-content:center" id="loginBtn" disabled onclick="doLogin()">
-          <i data-lucide="log-in"></i> Entrar
+        <!-- Aviso acesso direto admin -->
+        <div id="noticeAdmin" class="alert alert-success" style="display:none;font-size:.8rem;margin-bottom:1rem">
+          <i data-lucide="zap"></i>
+          <span>Administradores acessam diretamente, sem etapa extra.</span>
+        </div>
+
+        <div id="err1" style="display:none" class="alert alert-warning">
+          <i data-lucide="alert-triangle"></i><span id="err1msg"></span>
+        </div>
+        <button class="btn btn-primary" id="btn1" style="width:100%;justify-content:center" disabled onclick="doStep1()">
+          <i data-lucide="arrow-right"></i>&nbsp;<span id="lblBtn1">Continuar</span>
         </button>
         <div style="text-align:center;margin-top:1.25rem">
           <a href="patient-login.html" style="font-size:.8rem;color:var(--primary)">Sou paciente →</a>
         </div>
-        <div style="text-align:center;margin-top:.5rem">
+        <div style="text-align:center;margin-top:.4rem">
           <a href="../index.html" style="font-size:.8rem;color:var(--text-muted)">← Voltar ao início</a>
         </div>
       </div>
     </div>
+
+    <!-- ETAPA 2: Código 2FA (apenas médico) -->
+    <div class="login-card" id="step2" style="display:none">
+      <div style="text-align:center;margin-bottom:1.5rem">
+        <div style="width:60px;height:60px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;margin:0 auto .85rem">
+          <i data-lucide="mail" style="width:28px;height:28px;stroke:#fff"></i>
+        </div>
+        <h2 style="font-size:1.15rem;margin-bottom:.4rem">Verificação em 2 Etapas</h2>
+        <p style="font-size:.82rem;color:var(--text-muted)">
+          Enviamos um código de 6 dígitos para<br>
+          <strong id="emailMask" style="color:var(--primary)"></strong>
+        </p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="text-align:center;display:block;margin-bottom:.5rem">Código de Verificação</label>
+        <input class="code-input" type="text" id="code" maxlength="6" placeholder="000000"
+               oninput="this.value=this.value.replace(/\D/g,'');onCodeInput()"
+               onkeydown="if(event.key==='Enter')doStep2()"/>
+      </div>
+      <div id="err2" style="display:none;margin-bottom:.75rem" class="alert alert-warning">
+        <i data-lucide="alert-triangle"></i><span id="err2msg"></span>
+      </div>
+      <button class="btn btn-primary" id="btn2" style="width:100%;justify-content:center" disabled onclick="doStep2()">
+        <i data-lucide="check-circle"></i>&nbsp;Verificar e Entrar
+      </button>
+      <div style="display:flex;justify-content:space-between;margin-top:1rem">
+        <button onclick="goBack()" style="font-size:.8rem;color:var(--text-muted);background:none;border:none;cursor:pointer">
+          ← Voltar
+        </button>
+        <button onclick="doResend()" id="btnResend" style="font-size:.8rem;color:var(--primary);background:none;border:none;cursor:pointer">
+          Reenviar código
+        </button>
+      </div>
+    </div>
   </div>
+</div>
 
-  <script src="../js/data.js"></script>
-  <script src="../js/app.js"></script>
-  <script>
+<script src="../js/app.js"></script>
+<script>
+  lucide.createIcons();
+  let currentRole = 'doctor', sessionToken = '', savedUser = '', savedPwd = '';
+
+  function setRole(role) {
+    currentRole = role;
+    document.getElementById('btnDoctor').classList.toggle('active', role === 'doctor');
+    document.getElementById('btnAdmin').classList.toggle('active', role === 'admin');
+    document.getElementById('lblRole').textContent = role === 'doctor' ? 'Usuário (Médico)' : 'Usuário (Administrador)';
+    document.getElementById('usernameInput').placeholder = role === 'doctor' ? 'Nome de usuário do médico' : 'Nome de usuário do admin';
+    document.getElementById('notice2fa').style.display   = role === 'doctor' ? 'flex' : 'none';
+    document.getElementById('noticeAdmin').style.display = role === 'admin'  ? 'flex' : 'none';
+    document.getElementById('lblBtn1').textContent = role === 'admin' ? 'Entrar' : 'Continuar';
+    hideErr(1); toggleBtn1();
     lucide.createIcons();
-    let currentRole = "doctor";
-    let staffList = [];
+  }
 
-    async function loadStaff(role) {
-      try {
-        staffList = await App.listStaff(role);
-        const sel = document.getElementById("userSelect");
-        sel.innerHTML = "<option value=''>Selecione...</option>";
-        staffList.forEach(u => {
-          const opt = document.createElement("option");
-          opt.value = u.username;
-          opt.textContent = role === "doctor"
-            ? `${u.name} – ${u.specialty}`
-            : `${u.name} – ${u.title}`;
-          sel.appendChild(opt);
-        });
-      } catch(e) {
-        document.getElementById("userSelect").innerHTML = "<option value=''>Erro ao carregar</option>";
-      }
-    }
+  function onUsernameInput() { toggleBtn1(); }
+  function onPwdInput()      { toggleBtn1(); }
+  function onCodeInput()     { document.getElementById('btn2').disabled = document.getElementById('code').value.length !== 6; }
 
-    function setRole(role) {
-      currentRole = role;
-      document.getElementById("btnDoctor").classList.toggle("active", role === "doctor");
-      document.getElementById("btnAdmin").classList.toggle("active",  role === "admin");
-      document.getElementById("fieldLabel").textContent = role === "doctor" ? "Médico" : "Administrador";
-      document.getElementById("userInfo").style.display = "none";
-      document.getElementById("loginBtn").disabled = true;
-      loadStaff(role);
-    }
+  function toggleBtn1() {
+    document.getElementById('btn1').disabled =
+      !document.getElementById('usernameInput').value.trim() ||
+      !document.getElementById('pwd').value.length;
+  }
 
-    document.getElementById("userSelect").addEventListener("change", function() {
-      const u = staffList.find(x => x.username === this.value);
-      const info = document.getElementById("userInfo");
-      if (u) {
-        document.getElementById("userInfoText").innerHTML =
-          `<strong>${u.name}</strong><br>Usuário: <code>${u.username}</code> &nbsp;|&nbsp; ${u.email}`;
-        info.style.display = "block";
-        document.getElementById("loginBtn").disabled = false;
-        lucide.createIcons();
+  async function doStep1() {
+    const username = document.getElementById('usernameInput').value.trim();
+    const pwd      = document.getElementById('pwd').value;
+    if (!username || !pwd) return;
+    setBusy('btn1', true); hideErr(1);
+    try {
+      if (currentRole === 'admin') {
+        await App.loginAdmin(username, pwd);
+        window.location.href = 'admin/dashboard.html';
       } else {
-        info.style.display = "none";
-        document.getElementById("loginBtn").disabled = true;
+        const res = await App.initDoctorLogin(username, pwd);
+        sessionToken = res.sessionToken;
+        savedUser = username; savedPwd = pwd;
+        document.getElementById('emailMask').textContent = res.maskedEmail;
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = 'block';
+        document.getElementById('code').focus();
+        lucide.createIcons();
       }
-    });
-
-    async function doLogin() {
-      const username = document.getElementById("userSelect").value;
-      if (!username) return;
-      document.getElementById("loginBtn").disabled = true;
-      document.getElementById("loginBtn").textContent = "Entrando...";
-      document.getElementById("errorMsg").style.display = "none";
-      try {
-        await App.loginByUsername(username, currentRole);
-        window.location.href = currentRole === "doctor"
-          ? "doctor/dashboard.html"
-          : "admin/dashboard.html";
-      } catch(e) {
-        document.getElementById("errorText").textContent = e.message || "Erro ao fazer login.";
-        document.getElementById("errorMsg").style.display = "flex";
-        document.getElementById("loginBtn").disabled = false;
-        document.getElementById("loginBtn").innerHTML = '<i data-lucide="log-in"></i> Entrar';
+    } catch(e) {
+      showErr(1, e.message || 'Usuário ou senha incorretos.');
+    } finally {
+      if (document.getElementById('step1').style.display !== 'none') {
+        setBusy('btn1', false, '<i data-lucide="arrow-right"></i>&nbsp;<span id="lblBtn1">' + (currentRole==='admin'?'Entrar':'Continuar') + '</span>');
         lucide.createIcons();
       }
     }
+  }
 
-    loadStaff("doctor");
-  </script>
+  async function doStep2() {
+    const code = document.getElementById('code').value;
+    if (code.length !== 6) return;
+    setBusy('btn2', true); hideErr(2);
+    try {
+      await App.verify2FA(sessionToken, code);
+      window.location.href = 'doctor/dashboard.html';
+    } catch(e) {
+      showErr(2, e.message || 'Código inválido ou expirado.');
+      document.getElementById('code').value = ''; onCodeInput();
+    } finally {
+      setBusy('btn2', false, '<i data-lucide="check-circle"></i>&nbsp;Verificar e Entrar');
+      lucide.createIcons();
+    }
+  }
+
+  async function doResend() {
+    hideErr(2);
+    document.getElementById('btnResend').textContent = 'Enviando...';
+    try {
+      const res = await App.resend2FA({ username: savedUser, password: savedPwd });
+      sessionToken = res.sessionToken;
+      App.toast('Novo código enviado!', 'info');
+      document.getElementById('code').value = ''; onCodeInput();
+    } catch(e) {
+      showErr(2, 'Erro ao reenviar.');
+    } finally {
+      document.getElementById('btnResend').textContent = 'Reenviar código';
+    }
+  }
+
+  function goBack() {
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('code').value = '';
+    document.getElementById('pwd').value  = '';
+    toggleBtn1(); lucide.createIcons();
+  }
+
+  function togglePwd(id, iconId) {
+    const inp = document.getElementById(id);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    document.getElementById(iconId).setAttribute('data-lucide', inp.type === 'password' ? 'eye' : 'eye-off');
+    lucide.createIcons();
+  }
+  function showErr(n, msg) {
+    document.getElementById('err'+n+'msg').textContent = msg;
+    document.getElementById('err'+n).style.display = 'flex';
+    lucide.createIcons();
+  }
+  function hideErr(n) { document.getElementById('err'+n).style.display = 'none'; }
+  function setBusy(id, busy, html) {
+    const b = document.getElementById(id);
+    b.disabled = busy;
+    if (busy) b.textContent = 'Aguarde...';
+    else if (html) b.innerHTML = html;
+  }
+</script>
 </body>
 </html>

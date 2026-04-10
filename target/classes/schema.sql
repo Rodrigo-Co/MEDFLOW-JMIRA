@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS users (
 --  HISTÓRICO DE PRESSÃO ARTERIAL
 -- ---------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS blood_pressure_history (
-    id          SERIAL PRIMARY KEY,
+    id          bigint PRIMARY KEY,
     patient_id  VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     date_label  VARCHAR(20) NOT NULL,
     systolic    INTEGER NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS blood_pressure_history (
 --  HISTÓRICO DE FREQUÊNCIA CARDÍACA
 -- ---------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS heart_rate_history (
-    id          SERIAL PRIMARY KEY,
+    id          bigint PRIMARY KEY,
     patient_id  VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     date_label  VARCHAR(20) NOT NULL,
     rate        INTEGER NOT NULL
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS heart_rate_history (
 --  MEDICAÇÕES DO PACIENTE
 -- ---------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS patient_medications (
-    id          SERIAL PRIMARY KEY,
+    id          bigint PRIMARY KEY,
     patient_id  VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     medication  VARCHAR(255) NOT NULL
 );
@@ -263,3 +263,14 @@ INSERT INTO audit_log (id, action, severity, details, user_id, user_name, user_r
 ('al3','REQUEST_CREATE','warning','Solicitação de alteração de email enviada','d3','Dr. Carlos Eduardo Silva','doctor','2026-03-28T10:00:00Z'),
 ('al4','LOGIN','info','Login realizado no sistema','a1','Dr. Fernando Costa','admin','2026-03-29T08:30:00Z')
 ON CONFLICT (id) DO NOTHING;
+
+-- ================================================================
+--  MIGRACAO DE SENHAS
+--  O hash abaixo e o BCrypt de "medflow123"
+--  Execute este bloco apenas uma vez apos criar o banco
+-- ================================================================
+UPDATE users
+SET password_hash = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'
+WHERE password_hash IS NULL
+   OR password_hash = ''
+   OR password_hash = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';

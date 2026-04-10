@@ -36,29 +36,22 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsSource()))
+            .cors(c -> c.configurationSource(corsSource()))
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // ✅ Arquivos estáticos do frontend (HTML, CSS, JS, imagens)
+                // Arquivos estaticos do frontend
                 .requestMatchers(
-                    "/",
-                    "/index.html",
-                    "/pages/**",
-                    "/css/**",
-                    "/js/**",
-                    "/images/**",
-                    "/favicon.ico",
-                    "/*.html"
+                    "/", "/index.html", "/pages/**",
+                    "/css/**", "/js/**", "/images/**",
+                    "/favicon.ico", "/*.html"
                 ).permitAll()
-                // ✅ Rotas públicas de autenticação
+                // Rotas de autenticacao (login + 2FA)
                 .requestMatchers("/api/auth/**").permitAll()
-                // 🔒 Rotas de admin
+                // Rotas protegidas por role
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                // 🔒 Rotas de médico
                 .requestMatchers("/api/doctor/**").hasAnyRole("DOCTOR", "ADMIN")
-                // 🔒 Qualquer outra rota de API exige autenticação
                 .requestMatchers("/api/**").authenticated()
-                // ✅ Qualquer outro recurso estático é permitido
+                // Qualquer outro recurso estatico
                 .anyRequest().permitAll()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -75,10 +68,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;

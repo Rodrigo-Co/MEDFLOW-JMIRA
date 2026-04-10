@@ -1,116 +1,197 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Login Paciente – MedFlow</title>
-  <link rel="stylesheet" href="../css/style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    .code-input {
+      font-size:1.75rem; letter-spacing:.5rem; text-align:center;
+      font-weight:700; padding:.75rem; border:2px solid var(--border);
+      border-radius:var(--radius-sm); width:100%; background:#f8fafc;
+      transition:border-color .15s;
+    }
+    .code-input:focus { outline:none; border-color:var(--primary); background:#fff; }
+  </style>
 </head>
 <body>
-  <div class="login-bg">
-    <div style="width:100%;max-width:460px">
-      <div class="login-logo">
-        <div class="login-logo-icon"><i data-lucide="heart-pulse"></i></div>
-        <h1>Portal do Paciente</h1>
-        <p>Neocore Hospital</p>
+<div class="login-bg">
+  <div style="width:100%;max-width:460px">
+    <div class="login-logo">
+      <div class="login-logo-icon"><i data-lucide="heart-pulse"></i></div>
+      <h1>Portal do Paciente</h1><p>Neocore Hospital</p>
+    </div>
+
+    <!-- ETAPA 1: Email + senha -->
+    <div class="login-card" id="step1">
+      <p style="font-size:.85rem;color:var(--text-muted);text-align:center;margin-bottom:1.25rem">
+        Informe seu e-mail e senha para acessar
+      </p>
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input class="form-control" type="email" id="emailInput"
+               placeholder="seu@email.com"
+               oninput="toggleBtn1()" onkeydown="if(event.key==='Enter')document.getElementById('pwd').focus()"/>
       </div>
-      <div class="login-card">
-        <p style="font-size:.875rem;color:var(--text-muted);margin-bottom:1.25rem;text-align:center">
-          Selecione sua conta para acessar seu painel de saúde
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <div style="position:relative">
+          <input class="form-control" type="password" id="pwd"
+                 placeholder="Digite sua senha" style="padding-right:2.5rem"
+                 oninput="toggleBtn1()" onkeydown="if(event.key==='Enter')doStep1()"/>
+          <button onclick="togglePwd('pwd','ico1')" type="button"
+                  style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer">
+            <i data-lucide="eye" id="ico1" style="width:16px;height:16px"></i>
+          </button>
+        </div>
+      </div>
+      <div id="err1" style="display:none" class="alert alert-warning">
+        <i data-lucide="alert-triangle"></i><span id="err1msg"></span>
+      </div>
+      <button class="btn btn-primary" id="btn1" style="width:100%;justify-content:center" disabled onclick="doStep1()">
+        <i data-lucide="arrow-right"></i>&nbsp;Continuar
+      </button>
+      <div style="text-align:center;margin-top:1.25rem">
+        <a href="patient-register.html" style="font-size:.8rem;color:var(--primary)">Não tem conta? Cadastre-se →</a>
+      </div>
+      <div style="text-align:center;margin-top:.5rem">
+        <a href="staff-login.html" style="font-size:.8rem;color:var(--text-muted)">Sou médico ou administrador →</a>
+      </div>
+      <div style="text-align:center;margin-top:.4rem">
+        <a href="../index.html" style="font-size:.8rem;color:var(--text-muted)">← Voltar ao início</a>
+      </div>
+    </div>
+
+    <!-- ETAPA 2: Código 2FA -->
+    <div class="login-card" id="step2" style="display:none">
+      <div style="text-align:center;margin-bottom:1.5rem">
+        <div style="width:60px;height:60px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;margin:0 auto .85rem">
+          <i data-lucide="mail" style="width:28px;height:28px;stroke:#fff"></i>
+        </div>
+        <h2 style="font-size:1.15rem;margin-bottom:.4rem">Verificação em 2 Etapas</h2>
+        <p style="font-size:.82rem;color:var(--text-muted)">
+          Enviamos um código de 6 dígitos para<br>
+          <strong id="emailMask" style="color:var(--primary)"></strong>
         </p>
-        <div class="form-group">
-          <label class="form-label">Paciente</label>
-          <select class="form-control" id="patientSelect">
-            <option value="">Carregando...</option>
-          </select>
-        </div>
-        <div id="patientInfo" style="display:none;margin-bottom:1rem">
-          <div class="alert alert-info">
-            <i data-lucide="info"></i>
-            <div id="patientInfoText"></div>
-          </div>
-        </div>
-        <div id="errorMsg" class="alert alert-warning" style="display:none;margin-bottom:1rem">
-          <i data-lucide="alert-triangle"></i>
-          <span id="errorText"></span>
-        </div>
-        <button class="btn btn-primary" style="width:100%;justify-content:center" id="loginBtn" disabled onclick="doLogin()">
-          <i data-lucide="log-in"></i> Entrar
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="text-align:center;display:block;margin-bottom:.5rem">Código de Verificação</label>
+        <input class="code-input" type="text" id="code" maxlength="6" placeholder="000000"
+               oninput="this.value=this.value.replace(/\D/g,'');onCodeInput()"
+               onkeydown="if(event.key==='Enter')doStep2()"/>
+      </div>
+      <div id="err2" style="display:none;margin-bottom:.75rem" class="alert alert-warning">
+        <i data-lucide="alert-triangle"></i><span id="err2msg"></span>
+      </div>
+      <button class="btn btn-primary" id="btn2" style="width:100%;justify-content:center" disabled onclick="doStep2()">
+        <i data-lucide="check-circle"></i>&nbsp;Verificar e Entrar
+      </button>
+      <div style="display:flex;justify-content:space-between;margin-top:1rem">
+        <button onclick="goBack()" style="font-size:.8rem;color:var(--text-muted);background:none;border:none;cursor:pointer">
+          ← Voltar
         </button>
-        <div style="text-align:center;margin-top:1.25rem">
-          <a href="staff-login.html" style="font-size:.8rem;color:var(--primary)">Sou médico ou administrador →</a>
-        </div>
-        <div style="text-align:center;margin-top:.5rem">
-          <a href="../index.html" style="font-size:.8rem;color:var(--text-muted)">← Voltar ao início</a>
-        </div>
+        <button onclick="doResend()" id="btnResend" style="font-size:.8rem;color:var(--primary);background:none;border:none;cursor:pointer">
+          Reenviar código
+        </button>
       </div>
     </div>
   </div>
+</div>
 
-  <script src="../js/data.js"></script>
-  <script src="../js/app.js"></script>
-  <script>
-    lucide.createIcons();
-    let patients = [];
+<script src="../js/app.js"></script>
+<script>
+  lucide.createIcons();
+  let sessionToken = '', savedEmail = '', savedPwd = '';
 
-    async function loadPatients() {
-      try {
-        patients = await App.listPatients();
-        const sel = document.getElementById("patientSelect");
-        sel.innerHTML = "<option value=''>Selecione...</option>";
-        patients.forEach(p => {
-          const opt = document.createElement("option");
-          opt.value = p.id;
-          opt.textContent = p.name;
-          sel.appendChild(opt);
-        });
-      } catch(e) {
-        document.getElementById("patientSelect").innerHTML = "<option value=''>Erro ao carregar</option>";
-        showError("Não foi possível conectar ao servidor. Verifique se o backend está rodando.");
-      }
-    }
+  function toggleBtn1() {
+    const email = document.getElementById('emailInput').value.trim();
+    document.getElementById('btn1').disabled = !email || !document.getElementById('pwd').value;
+  }
+  function onCodeInput() {
+    document.getElementById('btn2').disabled = document.getElementById('code').value.length !== 6;
+  }
 
-    document.getElementById("patientSelect").addEventListener("change", function() {
-      const p = patients.find(x => x.id === this.value);
-      const info = document.getElementById("patientInfo");
-      if (p) {
-        document.getElementById("patientInfoText").innerHTML =
-          `<strong>${p.name}</strong><br>CPF: ${p.cpf} &nbsp;|&nbsp; ${p.email}`;
-        info.style.display = "block";
-        document.getElementById("loginBtn").disabled = false;
-        lucide.createIcons();
-      } else {
-        info.style.display = "none";
-        document.getElementById("loginBtn").disabled = true;
-      }
-    });
-
-    async function doLogin() {
-      const id = document.getElementById("patientSelect").value;
-      if (!id) return;
-      document.getElementById("loginBtn").disabled = true;
-      document.getElementById("loginBtn").textContent = "Entrando...";
-      hideError();
-      try {
-        await App.loginByPatientId(id);
-        window.location.href = "patient/dashboard.html";
-      } catch(e) {
-        showError(e.message || "Erro ao fazer login.");
-        document.getElementById("loginBtn").disabled = false;
-        document.getElementById("loginBtn").innerHTML = '<i data-lucide="log-in"></i> Entrar';
-        lucide.createIcons();
-      }
-    }
-
-    function showError(msg) {
-      document.getElementById("errorText").textContent = msg;
-      document.getElementById("errorMsg").style.display = "flex";
+  async function doStep1() {
+    const email = document.getElementById('emailInput').value.trim();
+    const pwd   = document.getElementById('pwd').value;
+    if (!email || !pwd) return;
+    setBusy('btn1', true); hideErr(1);
+    try {
+      const res    = await App.initPatientLogin(email, pwd);
+      sessionToken = res.sessionToken;
+      savedEmail   = email;
+      savedPwd     = pwd;
+      document.getElementById('emailMask').textContent = res.maskedEmail;
+      document.getElementById('step1').style.display = 'none';
+      document.getElementById('step2').style.display = 'block';
+      document.getElementById('code').focus();
+      lucide.createIcons();
+    } catch(e) {
+      showErr(1, e.message || 'E-mail ou senha incorretos.');
+    } finally {
+      setBusy('btn1', false, '<i data-lucide="arrow-right"></i>&nbsp;Continuar');
       lucide.createIcons();
     }
-    function hideError() { document.getElementById("errorMsg").style.display = "none"; }
+  }
 
-    loadPatients();
-  </script>
+  async function doStep2() {
+    const code = document.getElementById('code').value;
+    if (code.length !== 6) return;
+    setBusy('btn2', true); hideErr(2);
+    try {
+      await App.verify2FA(sessionToken, code);
+      window.location.href = 'patient/dashboard.html';
+    } catch(e) {
+      showErr(2, e.message || 'Código inválido ou expirado.');
+      document.getElementById('code').value = ''; onCodeInput();
+    } finally {
+      setBusy('btn2', false, '<i data-lucide="check-circle"></i>&nbsp;Verificar e Entrar');
+      lucide.createIcons();
+    }
+  }
+
+  async function doResend() {
+    hideErr(2);
+    document.getElementById('btnResend').textContent = 'Enviando...';
+    try {
+      const res = await App.resend2FA({ email: savedEmail, password: savedPwd });
+      sessionToken = res.sessionToken;
+      App.toast('Novo código enviado!', 'info');
+      document.getElementById('code').value = ''; onCodeInput();
+    } catch(e) {
+      showErr(2, 'Erro ao reenviar. Tente novamente.');
+    } finally {
+      document.getElementById('btnResend').textContent = 'Reenviar código';
+    }
+  }
+
+  function goBack() {
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('code').value = '';
+    document.getElementById('pwd').value  = '';
+    toggleBtn1(); lucide.createIcons();
+  }
+
+  function togglePwd(id, iconId) {
+    const inp = document.getElementById(id);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    document.getElementById(iconId).setAttribute('data-lucide', inp.type === 'password' ? 'eye' : 'eye-off');
+    lucide.createIcons();
+  }
+  function showErr(n, msg) {
+    document.getElementById('err'+n+'msg').textContent = msg;
+    document.getElementById('err'+n).style.display = 'flex'; lucide.createIcons();
+  }
+  function hideErr(n) { document.getElementById('err'+n).style.display = 'none'; }
+  function setBusy(id, busy, html) {
+    const b = document.getElementById(id);
+    b.disabled = busy;
+    if (busy) b.textContent = 'Aguarde...';
+    else if (html) b.innerHTML = html;
+  }
+</script>
 </body>
 </html>

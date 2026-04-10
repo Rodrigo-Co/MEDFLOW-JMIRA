@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Cadastro de Paciente – MedFlow</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    .reg-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    }
+    .reg-grid { display:grid; grid-template-columns:1fr 1fr; gap:.85rem; }
+    @media(max-width:480px){ .reg-grid { grid-template-columns:1fr; } }
+    .strength-bar {
+      height:4px; border-radius:99px; margin-top:.35rem;
+      background:var(--border); overflow:hidden;
+    }
+    .strength-fill { height:100%; border-radius:99px; transition:width .3s,background .3s; }
+    .step-dots {
+      display:flex; gap:.4rem; justify-content:center; margin-bottom:1.5rem;
+    }
+    .step-dot {
+      width:8px; height:8px; border-radius:50%; background:var(--border);
+      transition:background .25s, transform .25s;
+    }
+    .step-dot.active { background:var(--primary); transform:scale(1.3); }
+    .step-dot.done   { background:var(--primary); opacity:.4; }
+    .step-title { font-size:1rem; font-weight:700; margin-bottom:.2rem; color:var(--text); }
+    .step-sub   { font-size:.8rem; color:var(--text-muted); margin-bottom:1.25rem; }
+    .success-wrap {
+      text-align:center; padding:1rem 0;
+    }
+    .success-circle {
+      width:72px; height:72px; border-radius:50%; background:var(--primary);
+      display:flex; align-items:center; justify-content:center; margin:0 auto 1rem;
+    }
+  </style>
+</head>
+<body>
+<div class="login-bg">
+  <div style="width:100%;max-width:500px">
+
+    <div class="login-logo">
+      <div class="login-logo-icon"><i data-lucide="heart-pulse"></i></div>
+      <h1>Criar Conta</h1><p>Neocore Hospital</p>
+    </div>
+
+    <div class="reg-card">
+
+      <!-- Indicador de etapas -->
+      <div class="step-dots">
+        <div class="step-dot active" id="dot0"></div>
+        <div class="step-dot"        id="dot1"></div>
+        <div class="step-dot"        id="dot2"></div>
+      </div>
+
+      <!-- ── ETAPA 1: Dados pessoais ── -->
+      <div id="stepA">
+        <div class="step-title">Dados Pessoais</div>
+        <div class="step-sub">Etapa 1 de 3 — Informações básicas</div>
+        <div class="form-group">
+          <label class="form-label">Nome Completo *</label>
+          <input class="form-control" id="rName" placeholder="Ex.: Maria Oliveira dos Santos" oninput="clearErr()"/>
+        </div>
+        <div class="reg-grid">
+          <div class="form-group">
+            <label class="form-label">CPF *</label>
+            <input class="form-control" id="rCpf" placeholder="000.000.000-00" maxlength="14"
+                   oninput="maskCpf(this);clearErr()"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telefone</label>
+            <input class="form-control" id="rPhone" placeholder="(00) 00000-0000" maxlength="15"
+                   oninput="maskPhone(this)"/>
+          </div>
+        </div>
+        <div id="errA" class="alert alert-warning" style="display:none">
+          <i data-lucide="alert-triangle"></i><span id="errAtxt"></span>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:.25rem" onclick="goToB()">
+          Próximo <i data-lucide="arrow-right"></i>
+        </button>
+        <div style="text-align:center;margin-top:1rem">
+          <a href="patient-login.html" style="font-size:.8rem;color:var(--text-muted)">Já tenho conta → Fazer login</a>
+        </div>
+      </div>
+
+      <!-- ── ETAPA 2: E-mail ── -->
+      <div id="stepB" style="display:none">
+        <div class="step-title">E-mail de Acesso</div>
+        <div class="step-sub">Etapa 2 de 3 — Será usado para verificação em 2 etapas</div>
+        <div class="form-group">
+          <label class="form-label">E-mail *</label>
+          <input class="form-control" type="email" id="rEmail" placeholder="seu@email.com" oninput="clearErr()"/>
+          <div style="font-size:.73rem;color:var(--text-muted);margin-top:.3rem">
+            <i data-lucide="shield-check" style="width:12px;height:12px;display:inline;vertical-align:middle"></i>
+            Cada login envia um código de segurança para este e-mail
+          </div>
+        </div>
+        <div id="errB" class="alert alert-warning" style="display:none">
+          <i data-lucide="alert-triangle"></i><span id="errBtxt"></span>
+        </div>
+        <div style="display:flex;gap:.6rem;margin-top:.25rem">
+          <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="goToA()">
+            <i data-lucide="arrow-left"></i> Voltar
+          </button>
+          <button class="btn btn-primary" style="flex:2;justify-content:center" onclick="goToC()">
+            Próximo <i data-lucide="arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── ETAPA 3: Senha ── -->
+      <div id="stepC" style="display:none">
+        <div class="step-title">Criar Senha</div>
+        <div class="step-sub">Etapa 3 de 3 — Mínimo 6 caracteres</div>
+        <div class="form-group">
+          <label class="form-label">Senha *</label>
+          <div style="position:relative">
+            <input class="form-control" type="password" id="rPwd"
+                   placeholder="Crie uma senha segura" style="padding-right:2.5rem"
+                   oninput="checkStrength();clearErr()" onkeydown="if(event.key==='Enter')document.getElementById('rPwdConf').focus()"/>
+            <button type="button" onclick="togglePwd('rPwd','eyePwd')"
+                    style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer">
+              <i data-lucide="eye" id="eyePwd" style="width:16px;height:16px"></i>
+            </button>
+          </div>
+          <div class="strength-bar" id="sBar" style="display:none">
+            <div class="strength-fill" id="sFill"></div>
+          </div>
+          <div id="sLabel" style="font-size:.72rem;margin-top:.2rem;display:none"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmar Senha *</label>
+          <div style="position:relative">
+            <input class="form-control" type="password" id="rPwdConf"
+                   placeholder="Repita a senha" style="padding-right:2.5rem"
+                   oninput="clearErr()" onkeydown="if(event.key==='Enter')doRegister()"/>
+            <button type="button" onclick="togglePwd('rPwdConf','eyeConf')"
+                    style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer">
+              <i data-lucide="eye" id="eyeConf" style="width:16px;height:16px"></i>
+            </button>
+          </div>
+        </div>
+        <div id="errC" class="alert alert-warning" style="display:none">
+          <i data-lucide="alert-triangle"></i><span id="errCtxt"></span>
+        </div>
+        <div style="display:flex;gap:.6rem;margin-top:.25rem">
+          <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="goToB()">
+            <i data-lucide="arrow-left"></i> Voltar
+          </button>
+          <button class="btn btn-primary" id="btnReg" style="flex:2;justify-content:center" onclick="doRegister()">
+            <i data-lucide="user-check"></i> Criar Conta
+          </button>
+        </div>
+      </div>
+
+      <!-- ── SUCESSO ── -->
+      <div id="stepOK" style="display:none">
+        <div class="success-wrap">
+          <div class="success-circle">
+            <i data-lucide="check" style="width:32px;height:32px;stroke:#fff"></i>
+          </div>
+          <h2 style="font-size:1.1rem;margin-bottom:.5rem">Conta criada!</h2>
+          <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1.5rem">
+            Seu cadastro foi realizado com sucesso.<br>Faça login para acessar o portal.
+          </p>
+          <a href="patient-login.html" class="btn btn-primary" style="justify-content:center;width:100%">
+            <i data-lucide="log-in"></i> Ir para o Login
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="text-align:center;margin-top:1rem">
+      <a href="../index.html" style="font-size:.78rem;color:rgba(255,255,255,.5)">← Voltar ao início</a>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script>
+  lucide.createIcons();
+  let step = 0;
+
+  function setStep(n) {
+    step = n;
+    ['stepA','stepB','stepC','stepOK'].forEach((id,i) => {
+      document.getElementById(id).style.display = i === n ? 'block' : 'none';
+    });
+    [0,1,2].forEach(i => {
+      const d = document.getElementById('dot'+i);
+      d.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
+    });
+    lucide.createIcons();
+  }
+
+  // ── Máscaras ─────────────────────────────────────────────
+  function maskCpf(el) {
+    let v = el.value.replace(/\D/g,'').substring(0,11);
+    v = v.replace(/(\d{3})(\d)/,'$1.$2')
+         .replace(/(\d{3})(\d)/,'$1.$2')
+         .replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+    el.value = v;
+  }
+  function maskPhone(el) {
+    let v = el.value.replace(/\D/g,'').substring(0,11);
+    if (v.length > 10)       v = v.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3');
+    else if (v.length > 6)   v = v.replace(/(\d{2})(\d{4})(\d*)/,'($1) $2-$3');
+    else if (v.length > 2)   v = v.replace(/(\d{2})(\d*)/,'($1) $2');
+    el.value = v;
+  }
+
+  // ── Validação CPF ────────────────────────────────────────
+  function validCpf(cpf) {
+    const c = cpf.replace(/\D/g,'');
+    if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
+    let s = 0;
+    for (let i=0;i<9;i++) s += parseInt(c[i])*(10-i);
+    let r = 11-(s%11); if(r>=10) r=0;
+    if(r!==parseInt(c[9])) return false;
+    s=0;
+    for(let i=0;i<10;i++) s+=parseInt(c[i])*(11-i);
+    r=11-(s%11); if(r>=10) r=0;
+    return r===parseInt(c[10]);
+  }
+
+  // ── Força da senha ───────────────────────────────────────
+  function checkStrength() {
+    const pwd = document.getElementById('rPwd').value;
+    const bar = document.getElementById('sBar');
+    const fill = document.getElementById('sFill');
+    const lbl  = document.getElementById('sLabel');
+    if(!pwd){ bar.style.display='none'; lbl.style.display='none'; return; }
+    bar.style.display='block'; lbl.style.display='block';
+    let sc=0;
+    if(pwd.length>=6) sc++;
+    if(pwd.length>=10) sc++;
+    if(/[A-Z]/.test(pwd)&&/[a-z]/.test(pwd)) sc++;
+    if(/\d/.test(pwd)) sc++;
+    if(/[^A-Za-z0-9]/.test(pwd)) sc++;
+    const lvl=[
+      {w:'20%',bg:'#ef4444',t:'Muito fraca',c:'#ef4444'},
+      {w:'40%',bg:'#f97316',t:'Fraca',c:'#f97316'},
+      {w:'60%',bg:'#eab308',t:'Razoável',c:'#eab308'},
+      {w:'80%',bg:'#22c55e',t:'Boa',c:'#22c55e'},
+      {w:'100%',bg:'#16a34a',t:'Forte',c:'#16a34a'},
+    ][Math.min(sc,4)];
+    fill.style.width=lvl.w; fill.style.background=lvl.bg;
+    lbl.textContent=lvl.t; lbl.style.color=lvl.c;
+  }
+
+  function togglePwd(id, ico) {
+    const el = document.getElementById(id);
+    el.type = el.type==='password'?'text':'password';
+    document.getElementById(ico).setAttribute('data-lucide', el.type==='password'?'eye':'eye-off');
+    lucide.createIcons();
+  }
+
+  // ── Navegação entre etapas ───────────────────────────────
+  function goToA() { clearAll(); setStep(0); }
+
+  function goToB() {
+    const name = document.getElementById('rName').value.trim();
+    const cpf  = document.getElementById('rCpf').value.trim();
+    clearAll();
+    if (!name)         { showErr('A','Informe seu nome completo.'); return; }
+    if (!cpf)          { showErr('A','Informe seu CPF.'); return; }
+    if (!validCpf(cpf)){ showErr('A','CPF inválido. Verifique os dígitos.'); return; }
+    setStep(1);
+  }
+
+  function goToC() {
+    const email = document.getElementById('rEmail').value.trim();
+    clearAll();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showErr('B','Informe um e-mail válido.'); return;
+    }
+    setStep(2);
+  }
+
+  async function doRegister() {
+    const name  = document.getElementById('rName').value.trim();
+    const cpf   = document.getElementById('rCpf').value.trim();
+    const phone = document.getElementById('rPhone').value.trim();
+    const email = document.getElementById('rEmail').value.trim();
+    const pwd   = document.getElementById('rPwd').value;
+    const conf  = document.getElementById('rPwdConf').value;
+    clearAll();
+
+    if (!pwd || pwd.length < 6) { showErr('C','A senha deve ter no mínimo 6 caracteres.'); return; }
+    if (pwd !== conf)            { showErr('C','A senha e a confirmação não coincidem.'); return; }
+
+    const btn = document.getElementById('btnReg');
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite"></i>&nbsp;Criando conta...';
+    lucide.createIcons();
+
+    try {
+      await App.registerPatientSelf(name, email, phone, cpf, pwd);
+      setStep(3);
+    } catch(e) {
+      const msg = e.message || '';
+      if (msg.includes('CPF'))   { showErr('C', msg); goToA(); }
+      else if (msg.includes('E-mail') || msg.includes('email')) { showErr('C', msg); goToB(); }
+      else showErr('C', msg || 'Erro ao criar conta. Tente novamente.');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="user-check"></i> Criar Conta';
+      lucide.createIcons();
+    }
+  }
+
+  // ── Helpers ──────────────────────────────────────────────
+  function showErr(step, msg) {
+    const el = document.getElementById('err'+step);
+    document.getElementById('err'+step+'txt').textContent = msg;
+    el.style.display = 'flex'; lucide.createIcons();
+  }
+  function clearAll() {
+    ['A','B','C'].forEach(s => { document.getElementById('err'+s).style.display='none'; });
+  }
+  function clearErr() { clearAll(); }
+</script>
+<style>@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
+</body>
+</html>

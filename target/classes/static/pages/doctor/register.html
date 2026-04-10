@@ -6,51 +6,225 @@
   <link rel="stylesheet" href="../../css/style.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    .register-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    @media(max-width:560px){ .register-grid{grid-template-columns:1fr;} }
+    .section-title {
+      font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+      color:var(--text-muted); margin:1.5rem 0 .85rem;
+      display:flex; align-items:center; gap:.5rem;
+    }
+    .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+    .strength-bar { height:4px; border-radius:99px; margin-top:.4rem; background:var(--border); overflow:hidden; }
+    .strength-fill { height:100%; border-radius:99px; transition:width .3s,background .3s; }
+    .req { color:var(--danger); margin-left:2px; }
+  </style>
 </head>
 <body>
 <div class="app-layout">
   <div id="sidebarMount"></div>
   <main class="main-content">
-    <div class="page-header"><h1>Cadastrar Paciente</h1><p>Registre um novo paciente no sistema</p></div>
-    <div id="successMsg" style="display:none;max-width:480px;margin-bottom:1.5rem">
-      <div class="alert alert-success"><i data-lucide="check-circle"></i><div>Paciente cadastrado com sucesso!</div></div>
+    <div class="page-top-row">
+      <div class="page-header" style="margin:0">
+        <h1>Cadastrar Paciente</h1>
+        <p>Registre um novo paciente no sistema</p>
+      </div>
     </div>
-    <div class="card" style="max-width:560px"><div class="card-body">
-      <div class="form-grid">
-        <div class="form-group"><label class="form-label">Nome Completo *</label><input class="form-control" id="fName"/></div>
-        <div class="form-group"><label class="form-label">E-mail *</label><input class="form-control" id="fEmail" type="email"/></div>
-        <div class="form-group"><label class="form-label">Telefone</label><input class="form-control" id="fPhone"/></div>
-        <div class="form-group"><label class="form-label">CPF *</label><input class="form-control" id="fCpf" placeholder="000.000.000-00"/></div>
+
+    <!-- Sucesso -->
+    <div id="successMsg" style="display:none;max-width:620px;margin-bottom:1.25rem">
+      <div class="alert alert-success">
+        <i data-lucide="check-circle"></i>
+        <div id="successTxt">Paciente cadastrado com sucesso!</div>
       </div>
-      <div style="display:flex;gap:.75rem;margin-top:.5rem">
-        <button class="btn btn-primary" onclick="save()"><i data-lucide="user-plus"></i> Cadastrar</button>
-        <a href="dashboard.html" class="btn btn-secondary">Cancelar</a>
+    </div>
+
+    <div class="card" style="max-width:620px"><div class="card-body">
+
+      <!-- Dados Pessoais -->
+      <div class="section-title"><i data-lucide="user" style="width:13px;height:13px"></i> Dados Pessoais</div>
+      <div class="register-grid">
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Nome Completo <span class="req">*</span></label>
+          <input class="form-control" id="fName" placeholder="Ex.: Maria Oliveira dos Santos" oninput="clearErr()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">CPF <span class="req">*</span></label>
+          <input class="form-control" id="fCpf" placeholder="000.000.000-00" maxlength="14"
+                 oninput="maskCpf(this);clearErr()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Telefone</label>
+          <input class="form-control" id="fPhone" placeholder="(00) 00000-0000" maxlength="15"
+                 oninput="maskPhone(this)"/>
+        </div>
       </div>
+
+      <!-- Contato -->
+      <div class="section-title"><i data-lucide="mail" style="width:13px;height:13px"></i> E-mail de Acesso</div>
+      <div class="form-group">
+        <label class="form-label">E-mail <span class="req">*</span></label>
+        <input class="form-control" id="fEmail" type="email" placeholder="paciente@email.com" oninput="clearErr()"/>
+        <div style="font-size:.73rem;color:var(--text-muted);margin-top:.25rem">
+          O paciente usará este e-mail para fazer login e receber o código de verificação
+        </div>
+      </div>
+
+      <!-- Senha -->
+      <div class="section-title"><i data-lucide="lock" style="width:13px;height:13px"></i> Senha de Acesso</div>
+      <div class="register-grid">
+        <div class="form-group">
+          <label class="form-label">Senha Inicial <span class="req">*</span></label>
+          <div style="position:relative">
+            <input class="form-control" type="password" id="fPassword"
+                   placeholder="Mín. 6 caracteres" style="padding-right:2.5rem"
+                   oninput="checkStrength();clearErr()"/>
+            <button type="button" onclick="togglePwd('fPassword','eyePwd')"
+                    style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer">
+              <i data-lucide="eye" id="eyePwd" style="width:16px;height:16px"></i>
+            </button>
+          </div>
+          <div class="strength-bar" id="sBar" style="display:none">
+            <div class="strength-fill" id="sFill"></div>
+          </div>
+          <div id="sLabel" style="font-size:.72rem;margin-top:.2rem;display:none"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmar Senha <span class="req">*</span></label>
+          <div style="position:relative">
+            <input class="form-control" type="password" id="fPasswordConfirm"
+                   placeholder="Repita a senha" style="padding-right:2.5rem"
+                   oninput="clearErr()"/>
+            <button type="button" onclick="togglePwd('fPasswordConfirm','eyeConf')"
+                    style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer">
+              <i data-lucide="eye" id="eyeConf" style="width:16px;height:16px"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Erro -->
+      <div id="errMsg" class="alert alert-warning" style="display:none;margin-top:.5rem">
+        <i data-lucide="alert-triangle"></i><span id="errTxt"></span>
+      </div>
+
+      <!-- Ações -->
+      <div style="display:flex;gap:.75rem;margin-top:1.25rem">
+        <button class="btn btn-primary" id="btnSave" onclick="save()">
+          <i data-lucide="user-plus"></i> Cadastrar Paciente
+        </button>
+        <button class="btn btn-secondary" onclick="resetForm()">
+          <i data-lucide="rotate-ccw"></i> Limpar
+        </button>
+      </div>
+
     </div></div>
   </main>
 </div>
-<script src="../../js/data.js"></script>
+
 <script src="../../js/app.js"></script>
 <script src="../../js/sidebar.js"></script>
 <script>
-  if (!App.requireAuth("doctor")) throw 0;
+  if (!App.requireAuth('doctor')) throw 0;
   renderSidebar();
   lucide.createIcons();
 
-  async function save() {
-    const name  = document.getElementById("fName").value.trim();
-    const email = document.getElementById("fEmail").value.trim();
-    const phone = document.getElementById("fPhone").value.trim();
-    const cpf   = document.getElementById("fCpf").value.trim();
-    if (!name||!email||!cpf) { App.toast("Preencha nome, e-mail e CPF.","error"); return; }
-    try {
-      await App.registerPatient(name, email, phone, cpf);
-      App.toast("Paciente cadastrado com sucesso!");
-      document.getElementById("successMsg").style.display = "block";
-      ["fName","fEmail","fPhone","fCpf"].forEach(id=>document.getElementById(id).value="");
-      lucide.createIcons();
-    } catch(e) { App.toast("Erro: "+e.message,"error"); }
+  function maskCpf(el) {
+    let v = el.value.replace(/\D/g,'').substring(0,11);
+    v = v.replace(/(\d{3})(\d)/,'$1.$2')
+         .replace(/(\d{3})(\d)/,'$1.$2')
+         .replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+    el.value = v;
   }
+  function maskPhone(el) {
+    let v = el.value.replace(/\D/g,'').substring(0,11);
+    if(v.length>10)     v=v.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3');
+    else if(v.length>6) v=v.replace(/(\d{2})(\d{4})(\d*)/,'($1) $2-$3');
+    else if(v.length>2) v=v.replace(/(\d{2})(\d*)/,'($1) $2');
+    el.value=v;
+  }
+
+  function validCpf(cpf) {
+    const c=cpf.replace(/\D/g,'');
+    if(c.length!==11||/^(\d)\1+$/.test(c))return false;
+    let s=0;for(let i=0;i<9;i++)s+=parseInt(c[i])*(10-i);
+    let r=11-(s%11);if(r>=10)r=0;if(r!==parseInt(c[9]))return false;
+    s=0;for(let i=0;i<10;i++)s+=parseInt(c[i])*(11-i);
+    r=11-(s%11);if(r>=10)r=0;return r===parseInt(c[10]);
+  }
+
+  function checkStrength() {
+    const pwd=document.getElementById('fPassword').value;
+    const bar=document.getElementById('sBar'),fill=document.getElementById('sFill'),lbl=document.getElementById('sLabel');
+    if(!pwd){bar.style.display='none';lbl.style.display='none';return;}
+    bar.style.display='block';lbl.style.display='block';
+    let sc=0;
+    if(pwd.length>=6)sc++;if(pwd.length>=10)sc++;
+    if(/[A-Z]/.test(pwd)&&/[a-z]/.test(pwd))sc++;
+    if(/\d/.test(pwd))sc++;if(/[^A-Za-z0-9]/.test(pwd))sc++;
+    const lvl=[
+      {w:'20%',bg:'#ef4444',t:'Muito fraca',c:'#ef4444'},{w:'40%',bg:'#f97316',t:'Fraca',c:'#f97316'},
+      {w:'60%',bg:'#eab308',t:'Razoável',c:'#eab308'},{w:'80%',bg:'#22c55e',t:'Boa',c:'#22c55e'},
+      {w:'100%',bg:'#16a34a',t:'Forte',c:'#16a34a'},
+    ][Math.min(sc,4)];
+    fill.style.width=lvl.w;fill.style.background=lvl.bg;lbl.textContent=lvl.t;lbl.style.color=lvl.c;
+  }
+
+  function togglePwd(id,ico){
+    const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';
+    document.getElementById(ico).setAttribute('data-lucide',el.type==='password'?'eye':'eye-off');
+    lucide.createIcons();
+  }
+
+  async function save() {
+    const name=document.getElementById('fName').value.trim();
+    const email=document.getElementById('fEmail').value.trim();
+    const phone=document.getElementById('fPhone').value.trim();
+    const cpf=document.getElementById('fCpf').value.trim();
+    const pwd=document.getElementById('fPassword').value;
+    const conf=document.getElementById('fPasswordConfirm').value;
+    clearErr();
+    document.getElementById('successMsg').style.display='none';
+
+    if(!name)          {showErr('Informe o nome completo.');return;}
+    if(!email)         {showErr('Informe o e-mail.');return;}
+    if(!cpf)           {showErr('Informe o CPF.');return;}
+    if(!validCpf(cpf)) {showErr('CPF inválido. Verifique os dígitos.');return;}
+    if(!pwd)           {showErr('Defina uma senha inicial.');return;}
+    if(pwd.length<6)   {showErr('A senha deve ter no mínimo 6 caracteres.');return;}
+    if(pwd!==conf)     {showErr('A senha e a confirmação não coincidem.');return;}
+
+    const btn=document.getElementById('btnSave');
+    btn.disabled=true;
+    btn.innerHTML='<i data-lucide="loader-2" style="animation:spin 1s linear infinite"></i>&nbsp;Cadastrando...';
+    lucide.createIcons();
+
+    try {
+      await App.registerPatient(name,email,phone,cpf,pwd);
+      document.getElementById('successTxt').innerHTML=
+        `Paciente <strong>${name}</strong> cadastrado! Login feito com e-mail + senha no Portal do Paciente.`;
+      document.getElementById('successMsg').style.display='block';
+      resetForm();
+      window.scrollTo({top:0,behavior:'smooth'});
+      lucide.createIcons();
+    } catch(e) {
+      showErr(e.message||'Erro ao cadastrar paciente. Tente novamente.');
+    } finally {
+      btn.disabled=false;
+      btn.innerHTML='<i data-lucide="user-plus"></i> Cadastrar Paciente';
+      lucide.createIcons();
+    }
+  }
+
+  function resetForm(){
+    ['fName','fEmail','fPhone','fCpf','fPassword','fPasswordConfirm'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('sBar').style.display='none';
+    document.getElementById('sLabel').style.display='none';
+    clearErr();
+  }
+  function showErr(msg){document.getElementById('errTxt').textContent=msg;document.getElementById('errMsg').style.display='flex';lucide.createIcons();}
+  function clearErr(){document.getElementById('errMsg').style.display='none';}
 </script>
+<style>@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
 </body>
 </html>
