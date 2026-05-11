@@ -1,21 +1,18 @@
 package com.medflow.service;
 
 import com.medflow.dto.CreateChangeRequest;
+import com.medflow.http.HttpException;
+import com.medflow.http.RequestContext;
 import com.medflow.model.DataChangeRequest;
 import com.medflow.model.User;
 import com.medflow.repository.DataChangeRequestRepository;
 import com.medflow.repository.UserRepository;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import com.medflow.util.Validation;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
-@Service
 public class ChangeRequestService {
 
     private final DataChangeRequestRepository repo;
@@ -25,20 +22,31 @@ public class ChangeRequestService {
     public ChangeRequestService(DataChangeRequestRepository repo,
                                 UserRepository userRepo,
                                 AuditService audit) {
-        this.repo     = repo;
+        this.repo = repo;
         this.userRepo = userRepo;
-        this.audit    = audit;
+        this.audit = audit;
     }
 
-    public List<DataChangeRequest> findAll()              { return repo.findAllByOrderByCreatedAtDesc(); }
-    public List<DataChangeRequest> findPending()          { return repo.findByStatusOrderByCreatedAtDesc("pendente"); }
-    public long countPending()                            { return repo.countByStatus("pendente"); }
+    public List<DataChangeRequest> findAll() {
+        return repo.findAllByOrderByCreatedAtDesc();
+    }
 
-    @Transactional
+    public List<DataChangeRequest> findPending() {
+        return repo.findByStatusOrderByCreatedAtDesc("pendente");
+    }
+
+    public long countPending() {
+        return repo.countByStatus("pendente");
+    }
+
     public DataChangeRequest submit(CreateChangeRequest req) {
+        Validation.notBlank(req.getFieldName(), "fieldName obrigatorio");
+        Validation.notBlank(req.getOldValue(), "oldValue obrigatorio");
+        Validation.notBlank(req.getNewValue(), "newValue obrigatorio");
+
         String userId = currentUserId();
         User user = userRepo.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+                .orElseThrow(() -> new HttpException(401, "Usuario nao autenticado"));
 
         DataChangeRequest dcr = DataChangeRequest.builder()
                 .id("dcr" + UUID.randomUUID().toString().replace("-", "").substring(0, 10))
@@ -49,26 +57,27 @@ public class ChangeRequestService {
                 .oldValue(req.getOldValue())
                 .newValue(req.getNewValue())
                 .status("pendente")
+                .createdAt(OffsetDateTime.now())
                 .build();
 
         DataChangeRequest saved = repo.save(dcr);
         audit.log("REQUEST_CREATE", "info",
-                "Solicitação de alteração de " + req.getFieldName() + " enviada",
+                "Solicitacao de alteracao de " + req.getFieldName() + " enviada",
                 user.getId(), user.getName(), user.getRole());
         return saved;
     }
 
-    @Transactional
     public DataChangeRequest resolve(String id, boolean approved) {
         String adminId = currentUserId();
         User admin = userRepo.findById(adminId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+                .orElseThrow(() -> new HttpException(401, "Usuario nao autenticado"));
 
         DataChangeRequest dcr = repo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitação não encontrada"));
+                .orElseThrow(() -> new HttpException(404, "Solicitacao nao encontrada"));
 
-        if (!"pendente".equals(dcr.getStatus()))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Solicitação já resolvida");
+        if (!"pendente".equals(dcr.getStatus())) {
+            throw new HttpException(400, "Solicitacao ja resolvida");
+        }
 
         dcr.setStatus(approved ? "aprovado" : "rejeitado");
         dcr.setResolvedAt(OffsetDateTime.now());
@@ -77,12 +86,16 @@ public class ChangeRequestService {
 
         DataChangeRequest saved = repo.save(dcr);
         audit.log("REQUEST_RESOLVE", "warning",
-                (approved ? "Aprovou" : "Rejeitou") + " solicitação de " + dcr.getRequesterName(),
-                admin.getId(), admin.getName(), "admin");
+                (approved ? "Aprovou" : "Rejeitou") + " solicitacao de " + dcr.getRequesterName(),
+                admin.getId(), admin.getName(), admin.getRole());
         return saved;
     }
 
     private String currentUserId() {
-        return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String userId = RequestContext.currentUserId();
+        if (userId == null) {
+            throw new HttpException(401, "Usuario nao autenticado");
+        }
+        return userId;
     }
 }

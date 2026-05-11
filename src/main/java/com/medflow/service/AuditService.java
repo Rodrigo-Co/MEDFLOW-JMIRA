@@ -1,41 +1,37 @@
 package com.medflow.service;
 
+import com.medflow.http.RequestContext;
 import com.medflow.model.AuditLog;
 import com.medflow.repository.AuditLogRepository;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
-@Service
 public class AuditService {
 
-    private final AuditLogRepository repo;
+    private final AuditLogRepository repository;
 
-    public AuditService(AuditLogRepository repo) {
-        this.repo = repo;
+    public AuditService(AuditLogRepository repository) {
+        this.repository = repository;
     }
 
     public void log(String action, String severity, String details) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String userId = auth != null ? (String) auth.getPrincipal() : "system";
-
-        AuditLog entry = AuditLog.builder()
+        String userId = RequestContext.currentUserId();
+        repository.save(AuditLog.builder()
                 .id("al" + UUID.randomUUID().toString().replace("-", "").substring(0, 10))
                 .action(action)
                 .severity(severity)
                 .details(details)
-                .userId(userId)
-                .userName("—")
-                .userRole("—")
-                .build();
-        repo.save(entry);
+                .userId(userId == null ? "system" : userId)
+                .userName("-")
+                .userRole("-")
+                .logTimestamp(OffsetDateTime.now())
+                .build());
     }
 
     public void log(String action, String severity, String details,
                     String userId, String userName, String userRole) {
-        AuditLog entry = AuditLog.builder()
+        repository.save(AuditLog.builder()
                 .id("al" + UUID.randomUUID().toString().replace("-", "").substring(0, 10))
                 .action(action)
                 .severity(severity)
@@ -43,7 +39,7 @@ public class AuditService {
                 .userId(userId)
                 .userName(userName)
                 .userRole(userRole)
-                .build();
-        repo.save(entry);
+                .logTimestamp(OffsetDateTime.now())
+                .build());
     }
 }

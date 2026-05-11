@@ -1,92 +1,111 @@
 package com.medflow.service;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.stereotype.Service;
+import com.medflow.config.AppConfig;
+import com.medflow.http.HttpException;
+
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Servico de autenticacao em 2 fatores via email.
- *
- * Fluxo:
- *   1. generateAndSend()  -> gera codigo 6 digitos, envia email, retorna sessionToken
- *   2. verify()           -> confere sessionToken + codigo, retorna userId se valido
- */
-@Service
 public class TwoFactorService {
 
-    private final JavaMailSender mailSender;
-
-    @Value("${spring.mail.username}")
-    private String fromAddress;
-
-    @Value("${twofa.expiry-minutes:5}")
-    private int expiryMinutes;
-
+    private final String smtpHost;
+    private final int smtpPort;
+    private final String smtpUsername;
+    private final String smtpPassword;
+    private final int expiryMinutes;
     private final Map<String, PendingSession> sessions = new ConcurrentHashMap<>();
 
-    public TwoFactorService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+    public TwoFactorService(AppConfig config) {
+        this.smtpHost = config.getRequired("app.mail.host");
+        this.smtpPort = config.getInt("app.mail.port", 587);
+        this.smtpUsername = config.getRequired("app.mail.username");
+        this.smtpPassword = config.getRequired("app.mail.password");
+        this.expiryMinutes = config.getInt("twofa.expiry-minutes", 5);
     }
 
-    /** Gera e envia o codigo; retorna o sessionToken temporario. */
     public String generateAndSend(String userId, String userName, String email) {
-        String code         = generateCode();
+        String code = String.valueOf(new SecureRandom().nextInt(900_000) + 100_000);
         String sessionToken = UUID.randomUUID().toString();
-        Instant expiry      = Instant.now().plusSeconds(expiryMinutes * 60L);
+        Instant expiry = Instant.now().plusSeconds(expiryMinutes * 60L);
         sessions.put(sessionToken, new PendingSession(userId, code, expiry));
         sendEmail(email, userName, code);
         return sessionToken;
     }
 
-    /** Verifica sessionToken + codigo. Retorna userId se correto. Lanca excecao se invalido. */
     public String verify(String sessionToken, String code) {
-        PendingSession s = sessions.get(sessionToken);
-        if (s == null)
-            throw new IllegalArgumentException("Sessao invalida ou expirada. Faca login novamente.");
-        if (Instant.now().isAfter(s.expiry())) {
-            sessions.remove(sessionToken);
-            throw new IllegalArgumentException("Codigo expirado. Faca login novamente.");
+        PendingSession session = sessions.get(sessionToken);
+        if (session == null) {
+            throw new HttpException(401, "Sessao invalida ou expirada. Faca login novamente.");
         }
-        if (!s.code().equals(code.trim()))
-            throw new IllegalArgumentException("Codigo incorreto.");
+        if (Instant.now().isAfter(session.expiry())) {
+            sessions.remove(sessionToken);
+            throw new HttpException(401, "Codigo expirado. Faca login novamente.");
+        }
+        if (!session.code().equals(code == null ? "" : code.trim())) {
+            throw new HttpException(401, "Codigo incorreto.");
+        }
         sessions.remove(sessionToken);
-        return s.userId();
+        return session.userId();
     }
 
-    private String generateCode() {
-        return String.valueOf(new SecureRandom().nextInt(900_000) + 100_000);
+    public static String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "***";
+        }
+        String[] parts = email.split("@", 2);
+        String local = parts[0];
+        String visible = local.length() > 2 ? local.substring(0, 2) : local.substring(0, 1);
+        return visible + "***@" + parts[1];
     }
 
     private void sendEmail(String to, String userName, String code) {
-        SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setFrom(fromAddress);
-        msg.setTo(to);
-        msg.setSubject("MedFlow - Codigo de verificacao");
-        msg.setText(
-            "Ola, " + userName + "!\n\n" +
-            "Seu codigo de verificacao e:\n\n" +
-            "        " + code + "\n\n" +
-            "Valido por " + expiryMinutes + " minutos.\n" +
-            "Se nao foi voce, ignore este email.\n\n" +
-            "--- Neocore Hospital"
-        );
-        mailSender.send(msg);
+        try {
+            Properties props = new Properties();
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.host", smtpHost);
+            props.put("mail.smtp.port", String.valueOf(smtpPort));
+            props.put("mail.smtp.connectiontimeout", "5000");
+            props.put("mail.smtp.timeout", "5000");
+            props.put("mail.smtp.writetimeout", "5000");
+
+            Session session = Session.getInstance(props, new jakarta.mail.Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(smtpUsername, smtpPassword);
+                }
+            });
+
+            Message message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(smtpUsername));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
+            message.setSubject("MedFlow - Codigo de verificacao");
+            message.setText(
+                    "Ola, " + userName + "!\n\n" +
+                            "Seu codigo de verificacao e:\n\n" +
+                            "        " + code + "\n\n" +
+                            "Valido por " + expiryMinutes + " minutos.\n" +
+                            "Se nao foi voce, ignore este email.\n\n" +
+                            "--- Neocore Hospital"
+            );
+            Transport.send(message);
+        } catch (MessagingException e) {
+            throw new HttpException(500, "Nao foi possivel enviar o codigo 2FA por email");
+        }
     }
 
-    /** Mascara o email: maria@email.com -> ma***@email.com */
-    public static String maskEmail(String email) {
-        if (email == null || !email.contains("@")) return "***";
-        String[] p = email.split("@");
-        String vis = p[0].length() > 2 ? p[0].substring(0, 2) : p[0].substring(0, 1);
-        return vis + "***@" + p[1];
+    private record PendingSession(String userId, String code, Instant expiry) {
     }
-
-    private record PendingSession(String userId, String code, Instant expiry) {}
 }

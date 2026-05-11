@@ -1,24 +1,26 @@
 package com.medflow.security;
 
-import io.jsonwebtoken.*;
+import com.medflow.config.AppConfig;
+import com.medflow.http.AuthenticatedUser;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import java.util.Optional;
 
-@Component
 public class JwtUtil {
 
-    @Value("${jwt.secret}")
-    private String secret;
+    private final String secret;
+    private final long expirationMs;
 
-    @Value("${jwt.expiration-ms}")
-    private long expirationMs;
-
-    private Key key() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+    public JwtUtil(AppConfig config) {
+        this.secret = config.getRequired("jwt.secret");
+        this.expirationMs = config.getLong("jwt.expiration-ms", 86_400_000L);
     }
 
     public String generate(String userId, String role) {
@@ -31,22 +33,20 @@ public class JwtUtil {
                 .compact();
     }
 
-    public String extractUserId(String token) {
-        return Jwts.parserBuilder().setSigningKey(key()).build()
-                .parseClaimsJws(token).getBody().getSubject();
-    }
-
-    public String extractRole(String token) {
-        return (String) Jwts.parserBuilder().setSigningKey(key()).build()
-                .parseClaimsJws(token).getBody().get("role");
-    }
-
-    public boolean isValid(String token) {
+    public Optional<AuthenticatedUser> parse(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(token);
-            return true;
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(key())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            return Optional.of(new AuthenticatedUser(claims.getSubject(), String.valueOf(claims.get("role"))));
         } catch (JwtException | IllegalArgumentException e) {
-            return false;
+            return Optional.empty();
         }
+    }
+
+    private Key key() {
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 }
