@@ -24,7 +24,7 @@ const App = (() => {
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    if (res.status === 401) { logout(); return; }
+    if (res.status === 401 && token) { logout(); return; }
     if (res.status === 204)  return null;
 
     const data = await res.json();

@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone         VARCHAR(30),
     cpf           VARCHAR(20)  UNIQUE,
     role          VARCHAR(20)  NOT NULL CHECK (role IN ('admin', 'doctor', 'patient')),
-    password_hash VARCHAR(255) NOT NULL DEFAULT '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+    password_hash VARCHAR(255) NOT NULL DEFAULT '$2a$10$8ZA4MZj6N.Y2xJdEn7H0F.ltdrEotuzWLCRG9go7p3SngkWf6QSiK',
     -- admin
     title         VARCHAR(150),
     -- doctor
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS users (
 --  HISTÓRICO DE PRESSÃO ARTERIAL
 -- ---------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS blood_pressure_history (
-    id          bigint PRIMARY KEY,
+    id          BIGSERIAL PRIMARY KEY,
     patient_id  VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     date_label  VARCHAR(20) NOT NULL,
     systolic    INTEGER NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS blood_pressure_history (
 --  HISTÓRICO DE FREQUÊNCIA CARDÍACA
 -- ---------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS heart_rate_history (
-    id          bigint PRIMARY KEY,
+    id          BIGSERIAL PRIMARY KEY,
     patient_id  VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     date_label  VARCHAR(20) NOT NULL,
     rate        INTEGER NOT NULL
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS heart_rate_history (
 --  MEDICAÇÕES DO PACIENTE
 -- ---------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS patient_medications (
-    id          bigint PRIMARY KEY,
+    id          BIGSERIAL PRIMARY KEY,
     patient_id  VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     medication  VARCHAR(255) NOT NULL
 );
@@ -270,7 +270,7 @@ ON CONFLICT (id) DO NOTHING;
 --  Execute este bloco apenas uma vez apos criar o banco
 -- ================================================================
 UPDATE users
-SET password_hash = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'
+SET password_hash = '$2a$10$8ZA4MZj6N.Y2xJdEn7H0F.ltdrEotuzWLCRG9go7p3SngkWf6QSiK'
 WHERE password_hash IS NULL
    OR password_hash = ''
    OR password_hash = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
