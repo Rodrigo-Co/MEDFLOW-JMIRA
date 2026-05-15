@@ -1,6 +1,8 @@
 @echo off
 setlocal
 
+call "%~dp0load-env.cmd"
+
 set "JAR_PATH=%~dp0target\medflow-backend-1.0.0.jar"
 
 if not exist "%JAR_PATH%" (
