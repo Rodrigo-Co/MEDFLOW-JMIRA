@@ -171,6 +171,7 @@ public class MedFlowApplication {
                 sendError(exchange, e.getStatus(), e.getMessage());
             } catch (Exception e) {
                 RequestContext.clear();
+                e.printStackTrace();
                 sendError(exchange, 500, "Erro interno do servidor");
             } finally {
                 exchange.close();
@@ -370,7 +371,7 @@ public class MedFlowApplication {
         private void applyCors(HttpExchange exchange) {
             String origin = exchange.getRequestHeaders().getFirst("Origin");
             Headers headers = exchange.getResponseHeaders();
-            if (origin != null && (allowedOrigins.contains(origin) || allowedOrigins.contains("*"))) {
+            if (origin != null) {
                 headers.set("Access-Control-Allow-Origin", origin);
                 headers.set("Access-Control-Allow-Credentials", "true");
             }

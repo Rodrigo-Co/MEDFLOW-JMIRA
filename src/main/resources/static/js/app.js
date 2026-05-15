@@ -5,7 +5,7 @@
 const App = (() => {
 
   // ── Configuração ──────────────────────────────────────────
-  const API_BASE = "http://localhost:8080/api";
+  const API_BASE = "/api";
 
   // ── Estado ────────────────────────────────────────────────
   let currentUser = null;
