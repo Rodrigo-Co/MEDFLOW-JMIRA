@@ -22,7 +22,7 @@ public class AppConfig {
     }
 
     public String getRequired(String key) {
-        String value = properties.getProperty(key);
+        String value = getRaw(key);
         if (value == null || value.isBlank()) {
             throw new IllegalStateException("Propriedade obrigatoria ausente: " + key);
         }
@@ -30,12 +30,12 @@ public class AppConfig {
     }
 
     public String get(String key, String defaultValue) {
-        String value = properties.getProperty(key);
+        String value = getRaw(key);
         return value == null || value.isBlank() ? defaultValue : value.trim();
     }
 
     public int getInt(String key, int defaultValue) {
-        String value = properties.getProperty(key);
+        String value = getRaw(key);
         if (value == null || value.isBlank()) {
             return defaultValue;
         }
@@ -43,7 +43,7 @@ public class AppConfig {
     }
 
     public long getLong(String key, long defaultValue) {
-        String value = properties.getProperty(key);
+        String value = getRaw(key);
         if (value == null || value.isBlank()) {
             return defaultValue;
         }
@@ -59,5 +59,23 @@ public class AppConfig {
                 .map(String::trim)
                 .filter(s -> !s.isBlank())
                 .toList();
+    }
+
+    private String getRaw(String key) {
+        String envValue = System.getenv(envName(key));
+        if (envValue != null && !envValue.isBlank()) {
+            return envValue;
+        }
+        if ("server.port".equals(key)) {
+            envValue = System.getenv("PORT");
+            if (envValue != null && !envValue.isBlank()) {
+                return envValue;
+            }
+        }
+        return properties.getProperty(key);
+    }
+
+    private String envName(String key) {
+        return key.toUpperCase().replaceAll("[^A-Z0-9]", "_");
     }
 }

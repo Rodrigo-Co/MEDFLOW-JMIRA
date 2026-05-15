@@ -77,7 +77,8 @@ public class MedFlowApplication {
         TicketService ticketService = new TicketService(ticketRepo, userRepo, auditService);
         RecordService recordService = new RecordService(medicalRecordRepo, userRepo, auditService);
 
-        HttpServer server = HttpServer.create(new InetSocketAddress(config.getInt("server.port", 8080)), 0);
+        int port = config.getInt("server.port", 8080);
+        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.setExecutor(Executors.newFixedThreadPool(Math.max(4, Runtime.getRuntime().availableProcessors() * 2)));
         server.createContext("/", new AppHandler(
                 config, jwtUtil, userRepo, ticketRepo,
@@ -85,7 +86,7 @@ public class MedFlowApplication {
         ));
         server.start();
 
-        System.out.println("MedFlow backend (Java puro) iniciado em http://localhost:" + config.getInt("server.port", 8080));
+        System.out.println("MedFlow backend (Java puro) iniciado na porta " + port);
     }
 
     private static final class AppHandler implements HttpHandler {
