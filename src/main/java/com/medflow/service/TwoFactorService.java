@@ -94,10 +94,10 @@ public class TwoFactorService {
             message.setSubject("MedFlow - Codigo de verificacao");
             message.setText(
                     "Ola, " + userName + "!\n\n" +
-                            "Seu codigo de verificacao e:\n\n" +
+                            "Seu codigo de verificação é:\n\n" +
                             "        " + code + "\n\n" +
                             "Valido por " + expiryMinutes + " minutos.\n" +
-                            "Se nao foi voce, ignore este email.\n\n" +
+                            "Se não foi você, ignore este email.\n\n" +
                             "--- Neocore Hospital"
             );
             Transport.send(message);

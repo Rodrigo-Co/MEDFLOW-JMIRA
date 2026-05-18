@@ -3,59 +3,286 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MedFlow – Neocore Hospital</title>
+  <title>MedFlow - JMIRA</title>
   <link rel="stylesheet" href="css/style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
-  <div class="home-bg">
-    <nav style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 2rem;border-bottom:1px solid rgba(255,255,255,.1)">
-      <div style="display:flex;align-items:center;gap:.65rem;color:#fff">
-        <div class="feature-icon" style="margin:0;width:36px;height:36px"><i data-lucide="heart-pulse"></i></div>
-        <span style="font-weight:700;font-size:1.1rem">MedFlow</span>
+  <main class="figma-home">
+    <nav class="figma-nav">
+      <div class="figma-container figma-nav-inner">
+        <a href="#" class="figma-brand" aria-label="Neocore Hospital">
+          <img src="images/neocore-logo.png" alt="Neocore Hospital" />
+          <span>Neocore Hospital</span>
+        </a>
+
+        <div class="figma-nav-links" aria-label="Seções da página">
+          <a href="#servicos">Serviços</a>
+          <a href="#sobre">Sobre</a>
+          <a href="#historico">Histórico</a>
+          <a href="#localizacao">Localização</a>
+          <a href="#depoimentos">Depoimentos</a>
+        </div>
+
+        <div class="figma-nav-actions">
+          <a href="pages/patient-login.html" class="figma-btn figma-btn-outline">Portal do Paciente</a>
+          <a href="pages/staff-login.html" class="figma-professional-link">Acesso Profissional</a>
+        </div>
+
+        <button class="figma-menu-btn" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="figmaMobileMenu">
+          <i data-lucide="menu"></i>
+        </button>
       </div>
-      <div style="display:flex;gap:.75rem">
-        <a href="pages/patient-register.html" class="home-cta-btn home-cta-secondary" style="padding:.5rem 1.25rem;font-size:.875rem">Cadastrar-se</a>
-        <a href="pages/patient-login.html" class="home-cta-btn home-cta-secondary" style="padding:.5rem 1.25rem;font-size:.875rem">Portal do Paciente</a>
-        <a href="pages/staff-login.html"   class="home-cta-btn home-cta-primary"   style="padding:.5rem 1.25rem;font-size:.875rem;color:var(--primary)">Acesso Staff</a>
+
+      <div class="figma-mobile-menu" id="figmaMobileMenu">
+        <a href="#servicos">Serviços</a>
+        <a href="#sobre">Sobre</a>
+        <a href="#historico">Histórico</a>
+        <a href="#localizacao">Localização</a>
+        <a href="#depoimentos">Depoimentos</a>
+        <span></span>
+        <a href="pages/patient-login.html" class="figma-mobile-primary">Portal do Paciente</a>
+        <a href="pages/staff-login.html" class="figma-mobile-secondary">Acesso Profissional</a>
       </div>
     </nav>
-    <div class="home-hero">
-      <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:.3rem .9rem;margin-bottom:1.5rem">
-        <i data-lucide="shield-check" style="width:14px;height:14px;stroke:#7ec8a0"></i>
-        <span style="font-size:.78rem;color:rgba(255,255,255,.85)">Sistema de Gestão Hospitalar</span>
+
+    <section class="figma-hero">
+      <div class="figma-hero-bg"></div>
+      <div class="figma-container figma-hero-grid">
+        <div class="figma-hero-copy">
+          <div class="figma-pill">
+            <i data-lucide="heart-pulse"></i>
+            <span>Referência em Cardiologia</span>
+          </div>
+          <h1>Cuidando do seu <span>coração</span> com excelência</h1>
+          <p>Há mais de 25 anos oferecendo tratamento cardiovascular de referência, com tecnologia avançada e uma equipe médica altamente especializada.</p>
+          <div class="figma-hero-actions">
+            <a href="pages/patient-login.html" class="figma-btn figma-btn-accent">
+              <i data-lucide="calendar-plus"></i>
+              Agendar Consulta ou Exame
+            </a>
+            <a href="#servicos" class="figma-btn figma-btn-ghost">
+              Nossos Serviços
+              <i data-lucide="arrow-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <div class="figma-hero-media">
+          <img src="https://images.unsplash.com/photo-1543121955-8dfb9e9e255f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixlib=rb-4.1.0&q=80&w=1080" alt="Equipe médica em atendimento cardiológico" />
+        </div>
       </div>
-      <h1>Neocore Hospital</h1>
-      <p>Cuidados cardiovasculares avançados com tecnologia e humanidade. Gerencie prontuários, agendamentos e equipes em um único lugar.</p>
-      <div class="home-cta-group">
-        <a href="pages/patient-login.html" class="home-cta-btn home-cta-primary">Entrar como Paciente</a>
-        <a href="pages/patient-register.html" class="home-cta-btn home-cta-secondary">Criar Conta</a>
-        <a href="pages/staff-login.html"   class="home-cta-btn home-cta-secondary">Sou Médico / Admin</a>
+
+      <div class="figma-metrics-band">
+        <div class="figma-container figma-metrics">
+          <div>
+            <i data-lucide="users"></i>
+            <strong>12.500+</strong>
+            <span>Pacientes Atendidos</span>
+          </div>
+          <div>
+            <i data-lucide="activity"></i>
+            <strong>3.200+</strong>
+            <span>Cirurgias Realizadas</span>
+          </div>
+          <div>
+            <i data-lucide="award"></i>
+            <strong>25+</strong>
+            <span>Anos de Experiência</span>
+          </div>
+          <div>
+            <i data-lucide="stethoscope"></i>
+            <strong>80+</strong>
+            <span>Médicos Especialistas</span>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="home-features">
-      <div class="feature-card">
-        <div class="feature-icon"><i data-lucide="file-heart"></i></div>
-        <h3>Prontuários Digitais</h3>
-        <p>Registros médicos completos com histórico de edições e formatação automática assistida por IA.</p>
+    </section>
+
+    <section id="servicos" class="figma-section figma-soft">
+      <div class="figma-container">
+        <div class="figma-section-head">
+          <p>Nossos Serviços</p>
+          <h2>Especialidades Cardiovasculares</h2>
+          <span>Oferecemos um atendimento completo em cardiologia, desde a prevenção até procedimentos cirúrgicos complexos.</span>
+        </div>
+        <div class="figma-services-grid">
+          <article>
+            <i data-lucide="heart-pulse"></i>
+            <h3>Cardiologia Clínica</h3>
+            <p>Diagnóstico e tratamento de doenças cardiovasculares com tecnologia de ponta e equipe altamente qualificada.</p>
+          </article>
+          <article>
+            <i data-lucide="clipboard-plus"></i>
+            <h3>Cirurgia Cardiovascular</h3>
+            <p>Procedimentos minimamente invasivos e cirurgias complexas realizadas por especialistas renomados.</p>
+          </article>
+          <article>
+            <i data-lucide="zap"></i>
+            <h3>Hemodinâmica</h3>
+            <p>Cateterismo cardíaco, angioplastias e implante de stents com equipamentos de última geração.</p>
+          </article>
+          <article>
+            <i data-lucide="radio"></i>
+            <h3>Eletrofisiologia</h3>
+            <p>Tratamento de arritmias cardíacas, implante de marcapassos e desfibriladores.</p>
+          </article>
+          <article>
+            <i data-lucide="file-heart"></i>
+            <h3>Exames Cardiológicos</h3>
+            <p>Eletrocardiograma, ecocardiograma, teste ergométrico, holter 24h e MAPA.</p>
+          </article>
+          <article>
+            <i data-lucide="dumbbell"></i>
+            <h3>Reabilitação Cardíaca</h3>
+            <p>Programa multidisciplinar de recuperação pós-cirúrgica e melhoria da qualidade de vida.</p>
+          </article>
+        </div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon"><i data-lucide="activity"></i></div>
-        <h3>Monitoramento de Saúde</h3>
-        <p>Acompanhe pressão arterial e frequência cardíaca com gráficos evolutivos em tempo real.</p>
+    </section>
+
+    <section id="sobre" class="figma-section">
+      <div class="figma-container figma-about-grid">
+        <img src="https://images.unsplash.com/photo-1758691462126-2ee47c8bf9e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixlib=rb-4.1.0&q=80&w=1080" alt="Médica atendendo paciente" />
+        <div>
+          <p class="figma-kicker">Sobre o Hospital</p>
+          <h2>Tradição e inovação em cuidados cardíacos</h2>
+          <p>O Neocore Hospital é referência nacional em cardiologia, combinando mais de duas décadas de experiência com as mais recentes inovações tecnológicas. Nossa missão é oferecer tratamento cardiovascular de excelência, com atendimento humanizado e acessível.</p>
+          <p>Contamos com uma equipe de mais de 80 médicos especialistas, centro cirúrgico de alta complexidade, UTI cardiológica com monitoramento 24h e o mais moderno centro de hemodinâmica da região.</p>
+          <div class="figma-about-stats">
+            <div><strong>98.5%</strong><span>Taxa de Sucesso</span></div>
+            <div><strong>97%</strong><span>Satisfação Pacientes</span></div>
+            <div><strong>40 leitos</strong><span>UTI Cardiológica</span></div>
+            <div><strong>8 salas</strong><span>Centros Cirúrgicos</span></div>
+          </div>
+        </div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon"><i data-lucide="shield"></i></div>
-        <h3>Segurança e Auditoria</h3>
-        <p>Log completo de todas as ações do sistema com controle de acesso por perfil de usuário.</p>
+    </section>
+
+    <section id="historico" class="figma-section figma-soft">
+      <div class="figma-container">
+        <div class="figma-section-head">
+          <p>Nossa História</p>
+          <h2>Marco de Conquistas</h2>
+          <span>Uma trajetória de excelência e inovação no cuidado cardiovascular.</span>
+        </div>
+        <div class="figma-timeline">
+          <article><span>2001</span><h3>Fundação</h3><p>Hospital inaugurado como referência cardiovascular no estado.</p></article>
+          <article><span>2008</span><h3>Centro de Hemodinâmica</h3><p>Inauguração do centro de hemodinâmica mais moderno da região.</p></article>
+          <article><span>2015</span><h3>Acreditação ONA Nível 3</h3><p>Reconhecimento máximo em qualidade hospitalar no Brasil.</p></article>
+          <article><span>2020</span><h3>Cirurgia Robótica</h3><p>Primeiro hospital da região a realizar cirurgia cardíaca robótica.</p></article>
+          <article><span>2024</span><h3>IA em Diagnósticos</h3><p>Implementação de inteligência artificial para apoio diagnóstico.</p></article>
+          <article><span>2026</span><h3>CardioGest Digital</h3><p>Lançamento da plataforma digital para gestão e atendimento ao paciente.</p></article>
+        </div>
       </div>
-    </div>
-    <div style="text-align:center;padding:1.5rem;color:rgba(255,255,255,.35);font-size:.78rem;border-top:1px solid rgba(255,255,255,.08)">
-      &copy; 2026 Neocore Hospital · MedFlow v2.0
-    </div>
-  </div>
-  <script>lucide.createIcons();</script>
+    </section>
+
+    <section class="figma-cta">
+      <div class="figma-container">
+        <i data-lucide="calendar-plus"></i>
+        <h2>Agende sua consulta ou exame</h2>
+        <p>Cadastre-se no nosso portal digital para agendar consultas, solicitar exames e acompanhar seus resultados de qualquer lugar.</p>
+        <div class="figma-cta-actions">
+          <a href="pages/patient-register.html" class="figma-btn figma-btn-accent">Criar Minha Conta <i data-lucide="arrow-right"></i></a>
+          <a href="pages/patient-login.html" class="figma-btn figma-btn-ghost">Já tenho cadastro - Entrar</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="depoimentos" class="figma-section">
+      <div class="figma-container">
+        <div class="figma-section-head">
+          <p>Depoimentos</p>
+          <h2>O que nossos pacientes dizem</h2>
+        </div>
+        <div class="figma-testimonials">
+          <article>
+            <div class="figma-stars">★★★★★</div>
+            <p>"O atendimento foi excepcional. A equipe me acolheu desde o primeiro momento e o Dr. Ricardo salvou minha vida."</p>
+            <div><span>M</span><strong>Maria da Silva</strong><small>Paciente</small></div>
+          </article>
+          <article>
+            <div class="figma-stars">★★★★★</div>
+            <p>"Tecnologia de ponta aliada a um cuidado humano incrível. Recomendo o Neocore para todos."</p>
+            <div><span>J</span><strong>Joao Carlos Pereira</strong><small>Paciente</small></div>
+          </article>
+          <article>
+            <div class="figma-stars">★★★★★</div>
+            <p>"Minha cirurgia foi um sucesso. A equipe de enfermagem e os médicos são maravilhosos."</p>
+            <div><span>A</span><strong>Ana Paula Rodrigues</strong><small>Paciente</small></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="localizacao" class="figma-section figma-soft">
+      <div class="figma-container">
+        <div class="figma-section-head">
+          <p>Localização</p>
+          <h2>Como nos encontrar</h2>
+        </div>
+        <div class="figma-location-grid">
+          <iframe title="Localização Neocore Hospital" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3888.3644703654923!2d-38.41595342492389!3d-12.948514087364742!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x7161a08d6aaa545%3A0x6e9ec1bfe72412b2!2sUniversidade%20Cat%C3%B3lica%20do%20Salvador%20-%20UCSal!5e0!3m2!1spt-BR!2sbr!4v1774490372039!5m2!1spt-BR!2sbr" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+          <div class="figma-location-cards">
+            <article>
+              <h3>Informações de Contato</h3>
+              <p><i data-lucide="map-pin"></i><span><strong>Endereço</strong>Av. Pinto de Aguiar, 1578 - Pituaçu, Salvador - BA, 01310-200</span></p>
+              <p><i data-lucide="phone"></i><span><strong>Telefone</strong>(71) 3456-7890<br />Emergência: (71) 3456-7899</span></p>
+              <p><i data-lucide="mail"></i><span><strong>E-mail</strong>contato@neocorehospital.com.br</span></p>
+            </article>
+            <article>
+              <h3><i data-lucide="clock"></i> Horário de Funcionamento</h3>
+              <dl>
+                <div><dt>Emergência / UTI</dt><dd>24 horas</dd></div>
+                <div><dt>Consultas</dt><dd>Seg-Sex: 7h - 20h</dd></div>
+                <div><dt>Exames</dt><dd>Seg-Sab: 6h - 18h</dd></div>
+                <div><dt>Administrativo</dt><dd>Seg-Sex: 8h - 17h</dd></div>
+              </dl>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="figma-footer">
+      <div class="figma-container">
+        <div class="figma-footer-grid">
+          <div>
+            <a href="#" class="figma-footer-brand"><img src="images/neocore-logo.png" alt="Neocore Hospital" /><span>Neocore Hospital</span></a>
+            <p>Referência em cuidados cardiovasculares, unindo tecnologia e humanização.</p>
+          </div>
+          <div><h4>Serviços</h4><p>Cardiologia Clínica</p><p>Cirurgia Cardiovascular</p><p>Hemodinâmica</p><p>Eletrofisiologia</p></div>
+          <div><h4>Acesso Rápido</h4><a href="pages/patient-login.html">Portal do Paciente</a><a href="pages/patient-register.html">Cadastre-se</a><a href="pages/staff-login.html">Acesso Médico</a></div>
+          <div><h4>Contato</h4><p>(71) 3456-7890</p><p>contato@neocorehospital.com.br</p><p>Av. Pinto de Aguiar, 1578 - BA</p></div>
+        </div>
+        <div class="figma-footer-bottom">© 2026 Neocore Hospital. Todos os direitos reservados.</div>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    const menuButton = document.querySelector('.figma-menu-btn');
+    const mobileMenu = document.querySelector('#figmaMobileMenu');
+
+    menuButton.addEventListener('click', () => {
+      const isOpen = mobileMenu.classList.toggle('open');
+      menuButton.setAttribute('aria-expanded', String(isOpen));
+      menuButton.innerHTML = isOpen ? '<i data-lucide="x"></i>' : '<i data-lucide="menu"></i>';
+      lucide.createIcons();
+    });
+
+    mobileMenu.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.remove('open');
+        menuButton.setAttribute('aria-expanded', 'false');
+        menuButton.innerHTML = '<i data-lucide="menu"></i>';
+        lucide.createIcons();
+      });
+    });
+
+    lucide.createIcons();
+  </script>
 </body>
 </html>

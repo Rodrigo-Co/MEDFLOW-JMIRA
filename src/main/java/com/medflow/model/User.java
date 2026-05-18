@@ -8,8 +8,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-// BloodPressureRecord, HeartRateRecord, PatientMedication, PatientCondition
-// are in the same package (com.medflow.model) — no explicit import needed.
 
 @Entity
 @Table(name = "users")

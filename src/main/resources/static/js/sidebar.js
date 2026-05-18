@@ -55,8 +55,9 @@ function renderSidebar() {
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="sidebar-logo-icon"><i data-lucide="heart-pulse"></i></div>
-          <span class="sidebar-logo-text">MedFlow</span>
+          <div class="sidebar-logo-mark">
+            <img src="${root}images/neocore-logo.png" alt="Neocore Hospital" class="sidebar-logo-img" />
+          </div>
         </div>
         <button class="sidebar-collapse-btn" id="collapseBtn">
           <i data-lucide="chevron-left"></i>
