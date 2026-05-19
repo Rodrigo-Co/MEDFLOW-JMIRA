@@ -73,6 +73,12 @@ Depois de iniciar, acesse:
 http://localhost:8080
 ```
 
+Deploy Render:
+
+```text
+https://medflow-jmira.onrender.com
+```
+
 ## Rodar Sem Maven
 
 Use esta opcao quando a aplicacao ja tiver sido empacotada em `.jar`.
