@@ -75,7 +75,7 @@ public class MedFlowApplication {
         AuthService authService = new AuthService(userRepo, jwtUtil, auditService, twoFactorService);
         ChangeRequestService changeRequestService = new ChangeRequestService(changeRequestRepo, userRepo, auditService);
         TicketService ticketService = new TicketService(ticketRepo, userRepo, auditService);
-        RecordService recordService = new RecordService(medicalRecordRepo, userRepo, auditService);
+        RecordService recordService = new RecordService(medicalRecordRepo, userRepo, auditService, config);
 
         int port = config.getInt("server.port", 8080);
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
