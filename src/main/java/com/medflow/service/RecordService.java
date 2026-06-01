@@ -140,7 +140,7 @@ public class RecordService {
 
         MedicalRecord saved = recordRepo.save(record);
         audit.log("RECORD_EDIT", "warning",
-                "Prontuario de " + record.getPatientName() + " editado",
+                "Prontuario de " + record.getPatientName() + " editado: " + changes,
                 doctor.getId(), doctor.getName(), doctor.getRole());
         return saved;
     }
@@ -510,7 +510,7 @@ public class RecordService {
             changes.add("Tipo alterado de " + before.getType() + " para " + req.getType());
         }
         if (!same(before.getDiagnosis(), req.getDiagnosis())) {
-            changes.add("Diagnostico alterado");
+            changes.add("Diagnostico alterado de " + displayValue(before.getDiagnosis()) + " para " + displayValue(req.getDiagnosis()));
         }
         if (!same(before.getRawNotes(), req.getRawNotes())) {
             changes.add("Notas brutas alteradas");
@@ -523,5 +523,9 @@ public class RecordService {
 
     private boolean same(String left, String right) {
         return Objects.equals(left == null ? "" : left.trim(), right == null ? "" : right.trim());
+    }
+
+    private String displayValue(String value) {
+        return value == null || value.isBlank() ? "vazio" : "'" + value.trim() + "'";
     }
 }
