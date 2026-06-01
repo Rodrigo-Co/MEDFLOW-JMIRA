@@ -2,6 +2,7 @@ package com.medflow.repository;
 
 import com.medflow.model.BloodPressureRecord;
 import com.medflow.model.HeartRateRecord;
+import com.medflow.model.PatientHealthUpdateHistory;
 import com.medflow.model.PatientCondition;
 import com.medflow.model.PatientMedication;
 import com.medflow.model.User;
@@ -92,6 +93,93 @@ public class UserRepository {
             return findById(user.getId()).orElseThrow();
         } catch (SQLException e) {
             throw new IllegalStateException("Erro ao salvar usuario", e);
+        }
+    }
+
+    public void addBloodPressure(String patientId, String label, int systolic, int diastolic) {
+        String sql = """
+                insert into blood_pressure_history (patient_id, date_label, systolic, diastolic)
+                values (?, ?, ?, ?)
+                """;
+        try (Connection connection = database.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, patientId);
+            statement.setString(2, label);
+            statement.setInt(3, systolic);
+            statement.setInt(4, diastolic);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Erro ao salvar pressao arterial", e);
+        }
+    }
+
+    public void addHeartRate(String patientId, String label, int rate) {
+        String sql = """
+                insert into heart_rate_history (patient_id, date_label, rate)
+                values (?, ?, ?)
+                """;
+        try (Connection connection = database.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, patientId);
+            statement.setString(2, label);
+            statement.setInt(3, rate);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Erro ao salvar frequencia cardiaca", e);
+        }
+    }
+
+    public void replaceMedications(String patientId, List<String> medications) {
+        try (Connection connection = database.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                try (PreparedStatement delete = connection.prepareStatement("delete from patient_medications where patient_id = ?")) {
+                    delete.setString(1, patientId);
+                    delete.executeUpdate();
+                }
+                String sql = "insert into patient_medications (patient_id, medication) values (?, ?)";
+                try (PreparedStatement insert = connection.prepareStatement(sql)) {
+                    for (String medication : medications) {
+                        if (medication == null || medication.isBlank()) {
+                            continue;
+                        }
+                        insert.setString(1, patientId);
+                        insert.setString(2, medication.trim());
+                        insert.addBatch();
+                    }
+                    insert.executeBatch();
+                }
+                connection.commit();
+            } catch (SQLException e) {
+                connection.rollback();
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("Erro ao atualizar medicacoes", e);
+        }
+    }
+
+    public void insertHealthUpdateHistory(PatientHealthUpdateHistory history) {
+        String sql = """
+                insert into patient_health_update_history (
+                    id, patient_id, patient_name, record_id, doctor_id, doctor_name, update_timestamp, changes
+                ) values (?, ?, ?, ?, ?, ?, ?, ?)
+                """;
+        try (Connection connection = database.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, history.getId());
+            statement.setString(2, history.getPatientId());
+            statement.setString(3, history.getPatientName());
+            statement.setString(4, history.getRecordId());
+            statement.setString(5, history.getDoctorId());
+            statement.setString(6, history.getDoctorName());
+            statement.setTimestamp(7, history.getUpdateTimestamp() == null ? null : Timestamp.from(history.getUpdateTimestamp().toInstant()));
+            statement.setString(8, history.getChanges());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Erro ao salvar historico clinico do paciente", e);
         }
     }
 

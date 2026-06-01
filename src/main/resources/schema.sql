@@ -99,6 +99,20 @@ CREATE TABLE IF NOT EXISTS record_edit_history (
 );
 
 -- ---------------------------------------------------------------
+--  HISTÓRICO DE ATUALIZAÇÕES CLÍNICAS DO PACIENTE
+-- ---------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS patient_health_update_history (
+    id               VARCHAR(50) PRIMARY KEY,
+    patient_id       VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    patient_name     VARCHAR(255),
+    record_id        VARCHAR(50) NOT NULL REFERENCES medical_records(id) ON DELETE CASCADE,
+    doctor_id        VARCHAR(50) NOT NULL REFERENCES users(id),
+    doctor_name      VARCHAR(255),
+    update_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    changes          TEXT NOT NULL
+);
+
+-- ---------------------------------------------------------------
 --  CHAMADOS / TICKETS
 -- ---------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS tickets (

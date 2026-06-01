@@ -75,6 +75,41 @@
   </div>
 </div>
 
+<!-- Health Update Modal -->
+<div class="modal-overlay" id="healthModal">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header">
+      <h3>Atualizar Saúde do Paciente</h3>
+      <button class="modal-close" onclick="closeHealth()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="healthContext" style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem"></div>
+      <div class="form-grid" style="margin-bottom:1rem">
+        <div class="form-group">
+          <label class="form-label">Pressão sistólica</label>
+          <input class="form-control" id="hSystolic" type="number" min="40" max="260" placeholder="Ex: 120"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pressão diastólica</label>
+          <input class="form-control" id="hDiastolic" type="number" min="30" max="180" placeholder="Ex: 80"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Frequência cardíaca (bpm)</label>
+        <input class="form-control" id="hHeartRate" type="number" min="20" max="240" placeholder="Ex: 72"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Medicações em uso <span style="color:var(--text-muted);font-weight:400">(uma por linha)</span></label>
+        <textarea class="form-control" id="hMedications" rows="5" placeholder="Losartana 50mg&#10;AAS 100mg"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeHealth()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveHealthUpdate()"><i data-lucide="save"></i> Salvar Atualização</button>
+    </div>
+  </div>
+</div>
+
 <script src="../../js/data.js"></script>
 <script src="../../js/app.js?v=20260515"></script>
 <script src="../../js/sidebar.js"></script>
@@ -87,6 +122,12 @@
   let editingId = null;
   let formatTimer = null;
   let patients = [];
+  let healthRecord = null;
+  let healthMedicationsSnapshot = "";
+
+  function asArg(value) {
+    return JSON.stringify(value).replace(/'/g, "&#39;");
+  }
 
   // Load patients for select
   App.getAllPatients().then(list => {
@@ -130,11 +171,15 @@
               </div>
             </div>
             <div style="display:flex;gap:.5rem;flex-shrink:0">
-              <button class="btn btn-secondary btn-sm" onclick='viewRecord(${JSON.stringify(r).replace(/'/g,"&#39;")})'>
+              <button class="btn btn-secondary btn-sm" onclick='viewRecord(${asArg(r)})'>
                 <i data-lucide="eye"></i> Ver
               </button>
-              ${r.doctorId===userId?`<button class="btn btn-primary btn-sm" onclick='openEditModal(${JSON.stringify(r).replace(/'/g,"&#39;")})'>
-                <i data-lucide="edit-3"></i> Editar</button>`:""}
+              ${r.doctorId===userId
+                ? `<button class="btn btn-primary btn-sm" onclick='openEditModal(${asArg(r)})'><i data-lucide="edit-3"></i> Editar</button>`
+                : `<button class="btn btn-secondary btn-sm" onclick='takeOverRecord("${r.id}")'><i data-lucide="user-check"></i> Assumir</button>`}
+              <button class="btn btn-secondary btn-sm" onclick='openHealthModal(${asArg(r)})'>
+                <i data-lucide="activity"></i> Atualizar saúde
+              </button>
             </div>
           </div>
         </div>`).join("");
@@ -184,6 +229,17 @@
 
   function closeNew() { document.getElementById("newModal").classList.remove("open"); }
 
+  async function takeOverRecord(recordId) {
+    if (!confirm("Assumir este prontuário tornará você o médico responsável e registrará a ação no histórico. Continuar?")) return;
+    try {
+      await App.takeOverRecord(recordId);
+      App.toast("Prontuário assumido com sucesso.");
+      render();
+    } catch(e) {
+      App.toast("Erro: " + e.message, "error");
+    }
+  }
+
   async function saveRecord() {
     const type     = document.getElementById("nType").value;
     const raw      = document.getElementById("nRaw").value.trim();
@@ -225,6 +281,74 @@
     lucide.createIcons();
   }
   function closeView() { document.getElementById("viewModal").classList.remove("open"); }
+
+  async function openHealthModal(r) {
+    healthRecord = r;
+    document.getElementById("hSystolic").value = "";
+    document.getElementById("hDiastolic").value = "";
+    document.getElementById("hHeartRate").value = "";
+    document.getElementById("hMedications").value = "";
+    healthMedicationsSnapshot = "";
+    document.getElementById("healthContext").innerHTML = `
+      Paciente: <strong>${r.patientName}</strong><br>
+      Prontuário justificativo: <strong>${r.id}</strong> (${r.type}) · ${r.recordDate||r.date}
+    `;
+    document.getElementById("healthModal").classList.add("open");
+    lucide.createIcons();
+    try {
+      const patient = await App.getPatient(r.patientId);
+      healthMedicationsSnapshot = (patient.medications || [])
+        .map(m => m.medication || m)
+        .join("\n");
+      document.getElementById("hMedications").value = healthMedicationsSnapshot;
+    } catch (_) {}
+  }
+
+  function closeHealth() {
+    document.getElementById("healthModal").classList.remove("open");
+    healthRecord = null;
+    healthMedicationsSnapshot = "";
+  }
+
+  function numberOrNull(id) {
+    const value = document.getElementById(id).value;
+    return value === "" ? null : Number(value);
+  }
+
+  async function saveHealthUpdate() {
+    if (!healthRecord) return;
+    const systolic = numberOrNull("hSystolic");
+    const diastolic = numberOrNull("hDiastolic");
+    const heartRate = numberOrNull("hHeartRate");
+    const medicationsRaw = document.getElementById("hMedications").value;
+    const medicationsChanged = medicationsRaw.trim() !== healthMedicationsSnapshot.trim();
+    const medications = medicationsRaw.split(/\n+/).map(v => v.trim()).filter(Boolean);
+
+    if ((systolic !== null && diastolic === null) || (systolic === null && diastolic !== null)) {
+      App.toast("Informe a pressão sistólica e diastólica.", "error");
+      return;
+    }
+    if (systolic === null && diastolic === null && heartRate === null && !medicationsChanged) {
+      App.toast("Informe ao menos uma atualização clínica.", "error");
+      return;
+    }
+
+    try {
+      const payload = {
+        recordId: healthRecord.id,
+        systolic,
+        diastolic,
+        heartRate,
+      };
+      if (medicationsChanged) payload.medications = medications;
+      await App.updatePatientHealth(healthRecord.patientId, payload);
+      App.toast("Dados clínicos atualizados e auditados.");
+      closeHealth();
+      render();
+    } catch(e) {
+      App.toast("Erro: " + e.message, "error");
+    }
+  }
 
   render();
 </script>

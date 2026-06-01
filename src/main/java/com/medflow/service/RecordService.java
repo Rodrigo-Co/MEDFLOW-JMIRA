@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.medflow.config.AppConfig;
 import com.medflow.dto.CreateRecordRequest;
 import com.medflow.dto.EditRecordRequest;
+import com.medflow.dto.UpdatePatientHealthRequest;
 import com.medflow.http.HttpException;
 import com.medflow.http.RequestContext;
 import com.medflow.model.MedicalRecord;
+import com.medflow.model.PatientHealthUpdateHistory;
 import com.medflow.model.RecordEditHistory;
 import com.medflow.model.User;
 import com.medflow.repository.MedicalRecordRepository;
@@ -24,6 +26,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -115,18 +118,19 @@ public class RecordService {
         MedicalRecord record = findById(recordId);
 
         if (!doctorId.equals(record.getDoctorId())) {
-            throw new HttpException(403, "Voce so pode editar seus proprios prontuarios");
+            throw new HttpException(403, "Assuma o prontuario antes de editar");
         }
 
         if (record.getEditHistory() == null) {
             record.setEditHistory(new java.util.ArrayList<>());
         }
+        String changes = describeRecordChanges(record, req);
         record.getEditHistory().add(RecordEditHistory.builder()
                 .id("eh" + UUID.randomUUID().toString().replace("-", "").substring(0, 10))
                 .editedBy(doctor.getId())
                 .editedByName(doctor.getName())
                 .editTimestamp(OffsetDateTime.now())
-                .changes("Prontuario editado.")
+                .changes(changes)
                 .build());
 
         record.setType(req.getType());
@@ -139,6 +143,110 @@ public class RecordService {
                 "Prontuario de " + record.getPatientName() + " editado",
                 doctor.getId(), doctor.getName(), doctor.getRole());
         return saved;
+    }
+
+    public MedicalRecord takeOver(String recordId) {
+        User doctor = currentDoctor();
+        MedicalRecord record = findById(recordId);
+
+        if (doctor.getId().equals(record.getDoctorId())) {
+            return record;
+        }
+
+        String previousDoctor = record.getDoctorName() == null || record.getDoctorName().isBlank()
+                ? "sem responsavel"
+                : record.getDoctorName();
+
+        if (record.getEditHistory() == null) {
+            record.setEditHistory(new java.util.ArrayList<>());
+        }
+        record.getEditHistory().add(RecordEditHistory.builder()
+                .id("eh" + UUID.randomUUID().toString().replace("-", "").substring(0, 10))
+                .editedBy(doctor.getId())
+                .editedByName(doctor.getName())
+                .editTimestamp(OffsetDateTime.now())
+                .changes("Prontuario assumido por " + doctor.getName() + ". Responsavel anterior: " + previousDoctor + ".")
+                .build());
+
+        record.setDoctorId(doctor.getId());
+        record.setDoctorName(doctor.getName());
+
+        MedicalRecord saved = recordRepo.save(record);
+        audit.log("RECORD_TAKEOVER", "warning",
+                "Prontuario de " + record.getPatientName() + " assumido por " + doctor.getName()
+                        + ". Responsavel anterior: " + previousDoctor,
+                doctor.getId(), doctor.getName(), doctor.getRole());
+        return saved;
+    }
+
+    public User updatePatientHealth(String patientId, UpdatePatientHealthRequest req) {
+        User doctor = currentDoctor();
+        Validation.notBlank(patientId, "patientId obrigatorio");
+        Validation.notBlank(req == null ? null : req.getRecordId(), "recordId obrigatorio");
+
+        User patient = userRepo.findById(patientId)
+                .orElseThrow(() -> new HttpException(404, "Paciente nao encontrado"));
+        if (!"patient".equals(patient.getRole())) {
+            throw new HttpException(400, "Usuario informado nao e paciente");
+        }
+
+        MedicalRecord record = findById(req.getRecordId());
+        if (!patientId.equals(record.getPatientId())) {
+            throw new HttpException(400, "Prontuario nao pertence ao paciente selecionado");
+        }
+        if (!List.of("consulta", "exame", "cirurgia").contains(record.getType())) {
+            throw new HttpException(400, "Prontuario justificativo invalido");
+        }
+
+        boolean hasPressure = req.getSystolic() != null || req.getDiastolic() != null;
+        boolean completePressure = req.getSystolic() != null && req.getDiastolic() != null;
+        boolean hasHeartRate = req.getHeartRate() != null;
+        boolean hasMedications = req.getMedications() != null;
+        if (hasPressure && !completePressure) {
+            throw new HttpException(400, "Informe pressao sistolica e diastolica");
+        }
+        if (!completePressure && !hasHeartRate && !hasMedications) {
+            throw new HttpException(400, "Informe ao menos uma atualizacao clinica");
+        }
+
+        List<String> changes = new ArrayList<>();
+        String label = LocalDate.now().toString();
+        if (completePressure) {
+            userRepo.addBloodPressure(patientId, label, req.getSystolic(), req.getDiastolic());
+            changes.add("Pressao arterial atualizada para " + req.getSystolic() + "/" + req.getDiastolic() + " mmHg");
+        }
+        if (hasHeartRate) {
+            userRepo.addHeartRate(patientId, label, req.getHeartRate());
+            changes.add("Frequencia cardiaca atualizada para " + req.getHeartRate() + " bpm");
+        }
+        if (hasMedications) {
+            List<String> medications = req.getMedications().stream()
+                    .filter(Objects::nonNull)
+                    .map(String::trim)
+                    .filter(value -> !value.isBlank())
+                    .toList();
+            userRepo.replaceMedications(patientId, medications);
+            changes.add("Medicacoes atualizadas: " + (medications.isEmpty() ? "nenhuma medicacao em uso" : String.join(", ", medications)));
+        }
+
+        String summary = String.join("; ", changes) + ". Prontuario justificativo: " + record.getId() + ".";
+        userRepo.insertHealthUpdateHistory(PatientHealthUpdateHistory.builder()
+                .id("phu" + UUID.randomUUID().toString().replace("-", "").substring(0, 11))
+                .patientId(patient.getId())
+                .patientName(patient.getName())
+                .recordId(record.getId())
+                .doctorId(doctor.getId())
+                .doctorName(doctor.getName())
+                .updateTimestamp(OffsetDateTime.now())
+                .changes(summary)
+                .build());
+
+        audit.log("PATIENT_HEALTH_UPDATE", "warning",
+                "Dados clinicos de " + patient.getName() + " atualizados por " + doctor.getName()
+                        + " usando prontuario " + record.getId() + ": " + String.join("; ", changes),
+                doctor.getId(), doctor.getName(), doctor.getRole());
+
+        return userRepo.findById(patientId).orElseThrow(() -> new HttpException(404, "Paciente nao encontrado"));
     }
 
     public String formatNotes(String raw, String type) {
@@ -386,5 +494,34 @@ public class RecordService {
             throw new HttpException(401, "Usuario nao autenticado");
         }
         return userId;
+    }
+
+    private User currentDoctor() {
+        if (!"doctor".equals(RequestContext.currentUserRole())) {
+            throw new HttpException(403, "Acesso restrito a medicos");
+        }
+        return userRepo.findById(currentUserId())
+                .orElseThrow(() -> new HttpException(401, "Medico nao autenticado"));
+    }
+
+    private String describeRecordChanges(MedicalRecord before, EditRecordRequest req) {
+        List<String> changes = new ArrayList<>();
+        if (!same(before.getType(), req.getType())) {
+            changes.add("Tipo alterado de " + before.getType() + " para " + req.getType());
+        }
+        if (!same(before.getDiagnosis(), req.getDiagnosis())) {
+            changes.add("Diagnostico alterado");
+        }
+        if (!same(before.getRawNotes(), req.getRawNotes())) {
+            changes.add("Notas brutas alteradas");
+        }
+        if (!same(before.getFormattedNotes(), req.getFormattedNotes())) {
+            changes.add("Notas formatadas alteradas");
+        }
+        return changes.isEmpty() ? "Prontuario salvo sem alteracoes textuais." : String.join("; ", changes) + ".";
+    }
+
+    private boolean same(String left, String right) {
+        return Objects.equals(left == null ? "" : left.trim(), right == null ? "" : right.trim());
     }
 }

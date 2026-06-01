@@ -16,6 +16,7 @@ import com.medflow.dto.PatientLoginRequest;
 import com.medflow.dto.ResolveChangeRequest;
 import com.medflow.dto.StaffLoginRequest;
 import com.medflow.dto.UpdateDoctorRequest;
+import com.medflow.dto.UpdatePatientHealthRequest;
 import com.medflow.dto.Verify2FARequest;
 import com.medflow.http.AuthenticatedUser;
 import com.medflow.http.HttpException;
@@ -236,6 +237,10 @@ public class MedFlowApplication {
                 Map<String, String> body = readMap(req);
                 return AuthService.toDto(userService.updatePatientProfile(id, body.get("name"), body.get("email"), body.get("phone")));
             }));
+            routes.add(new Route("POST", "/api/patients/{id}/health-updates", List.of("doctor"), 200, req -> {
+                UpdatePatientHealthRequest body = readBody(req, UpdatePatientHealthRequest.class);
+                return AuthService.toDto(recordService.updatePatientHealth(req.pathParam("id"), body));
+            }));
 
             routes.add(new Route("GET", "/api/admin/doctors", List.of("admin"), 200, req -> userService.allDoctors().stream().map(AuthService::toDto).toList()));
             routes.add(new Route("POST", "/api/admin/doctors", List.of("admin"), 201, req -> AuthService.toDto(userService.createDoctor(readBody(req, CreateDoctorRequest.class)))));
@@ -337,6 +342,7 @@ public class MedFlowApplication {
             routes.add(new Route("GET", "/api/records/{id}", List.of("patient", "doctor", "admin"), 200, req -> recordService.findById(req.pathParam("id"))));
             routes.add(new Route("POST", "/api/records", List.of("doctor"), 201, req -> recordService.create(readBody(req, CreateRecordRequest.class))));
             routes.add(new Route("PUT", "/api/records/{id}", List.of("doctor"), 200, req -> recordService.edit(req.pathParam("id"), readBody(req, EditRecordRequest.class))));
+            routes.add(new Route("PATCH", "/api/records/{id}/take-over", List.of("doctor"), 200, req -> recordService.takeOver(req.pathParam("id"))));
             routes.add(new Route("POST", "/api/records/format", List.of("doctor"), 200, req -> {
                 FormatNotesRequest body = readBody(req, FormatNotesRequest.class);
                 return Map.of("formattedNotes", recordService.formatNotes(body.getRawNotes(), body.getType()));
