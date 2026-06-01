@@ -103,6 +103,9 @@ const App = (() => {
   async function editRecord(recordId, type, rawNotes, formattedNotes, diagnosis) {
     return put("/records/" + recordId, { type, rawNotes, formattedNotes, diagnosis });
   }
+  async function takeOverRecord(recordId) {
+    return patch("/records/" + recordId + "/take-over");
+  }
 
   // ── Patients ──────────────────────────────────────────────
   async function getAllPatients()                          { return get("/patients"); }
@@ -112,6 +115,9 @@ const App = (() => {
   }
   async function updateMyProfile(id, name, email, phone) {
     return put("/patients/" + id + "/profile", { name, email, phone });
+  }
+  async function updatePatientHealth(patientId, body) {
+    return post("/patients/" + patientId + "/health-updates", body);
   }
 
   // ── Doctors (admin) ───────────────────────────────────────
@@ -235,9 +241,9 @@ const App = (() => {
     getMyTickets, getAllTickets, createTicket, acceptTicket, completeTicket,
     // records
     getAllRecords, getMyRecords, getPatientRecords,
-    formatNotes, createRecord, editRecord,
+    formatNotes, createRecord, editRecord, takeOverRecord,
     // patients
-    getAllPatients, getPatient, registerPatient, updateMyProfile,
+    getAllPatients, getPatient, registerPatient, updateMyProfile, updatePatientHealth,
     // doctors
     getAllDoctors, createDoctor, updateDoctor,
     getDoctorProfile, updateDoctorProfile, submitChangeRequest,
